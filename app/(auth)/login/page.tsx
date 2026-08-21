@@ -24,7 +24,6 @@ function GoogleIcon() {
 }
 
 export default function LoginPage() {
-  const supabase = createClient();
   const [step, setStep] = useState<'email' | 'code'>('email');
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
@@ -35,6 +34,7 @@ export default function LoginPage() {
     e.preventDefault();
     setBusy(true);
     setError(null);
+    const supabase = createClient();
     const { error } = await supabase.auth.signInWithOtp({
       email: email.trim(),
       options: { shouldCreateUser: true },
@@ -48,6 +48,7 @@ export default function LoginPage() {
     e.preventDefault();
     setBusy(true);
     setError(null);
+    const supabase = createClient();
     const { error } = await supabase.auth.verifyOtp({
       email: email.trim(),
       token: code.trim(),
@@ -65,6 +66,7 @@ export default function LoginPage() {
 
   async function google() {
     setError(null);
+    const supabase = createClient();
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: `${window.location.origin}/auth/callback` },
