@@ -1,16 +1,34 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { displayName } from "@/lib/display";
 import { levelProgress } from "@/lib/xp";
 import { SignOutButton } from "@/components/auth/SignOutButton";
 import { RuneMascot } from "@/components/brand/RuneMascot";
+import { RuneLoader } from "@/components/brand/RuneLoader";
 
 /**
- * Slice 0 dashboard SHELL — proves an authenticated session reads real data.
- * The real Learn path (winding path, nodes, streak strip) is built in Slice 1.
- * Reads the profile via RLS (own-row-only) using the SSR server client.
+ * Slice 0 dashboard SHELL. Streams: the page shell paints instantly with the
+ * "Rune is Tuning" loader while the profile query resolves (so post-sign-in
+ * latency shows our loader, not a blank screen). Real Learn path = Slice 1.
  */
-export default async function LearnPage() {
+export default function LearnPage() {
+  return (
+    <main className="mx-auto w-full max-w-md flex-1 px-5 py-8">
+      <Suspense
+        fallback={
+          <div className="flex min-h-[60vh] items-center justify-center">
+            <RuneLoader size={200} />
+          </div>
+        }
+      >
+        <Dashboard />
+      </Suspense>
+    </main>
+  );
+}
+
+async function Dashboard() {
   const supabase = await createClient();
   const {
     data: { user },
@@ -28,7 +46,7 @@ export default async function LearnPage() {
   const { level, progress } = levelProgress(xp);
 
   return (
-    <main className="mx-auto w-full max-w-md flex-1 px-5 py-8">
+    <>
       <header className="flex items-center justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-violet">
@@ -63,6 +81,6 @@ export default async function LearnPage() {
           path arrives in Slice 1.
         </p>
       </section>
-    </main>
+    </>
   );
 }
