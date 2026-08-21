@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { RuneMascot } from '@/components/brand/RuneMascot';
@@ -14,7 +13,6 @@ import { RuneMascot } from '@/components/brand/RuneMascot';
  * Google button is wired; works once the Google provider is configured.
  */
 export default function LoginPage() {
-  const router = useRouter();
   const supabase = createClient();
   const [step, setStep] = useState<'email' | 'code'>('email');
   const [email, setEmail] = useState('');
@@ -44,10 +42,13 @@ export default function LoginPage() {
       token: code.trim(),
       type: 'email',
     });
-    setBusy(false);
-    if (error) return setError(error.message);
-    router.replace('/learn');
-    router.refresh();
+    if (error) {
+      setBusy(false);
+      return setError(error.message);
+    }
+    // Full-page navigation (not router.replace): guarantees the server reads the
+    // just-written auth cookie on the first request, so no double-submit.
+    window.location.assign('/learn');
   }
 
   async function google() {
