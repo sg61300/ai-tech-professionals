@@ -32,6 +32,8 @@ await client.connect();
 await client.query(
   "create table if not exists public._migrations (name text primary key, applied_at timestamptz default now())",
 );
+// Deny-all RLS so PostgREST never exposes this internal table to the API.
+await client.query("alter table public._migrations enable row level security");
 const { rows } = await client.query("select name from public._migrations");
 const done = new Set(rows.map((r) => r.name));
 
