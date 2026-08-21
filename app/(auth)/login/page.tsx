@@ -1,37 +1,54 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { RuneMascot } from '@/components/brand/RuneMascot';
 
 /**
- * Login (activation spine, Slice 0). Magic-link flow: email -> Supabase sends a
- * sign-in link -> user clicks -> /auth/callback exchanges the code -> /learn.
- * Zero Supabase template config (default Magic Link email works). Google button
- * is wired and works once the Google provider is configured (no code change).
+ * Login / OTP (activation spine, Slice 0). Robust code flow: email -> Supabase
+ * emails a 6-digit code -> user types it in THIS tab -> verifyOtp -> /learn.
+ * No redirect / no PKCE code-verifier / no allowlist needed (unlike magic link).
+ * Requires the Supabase "Confirm signup" + "Magic Link" email templates to
+ * contain {{ .Token }} (that is what makes Supabase send a code).
+ * Google button is wired; works once the Google provider is configured.
  */
 export default function LoginPage() {
+  const router = useRouter();
   const supabase = createClient();
+  const [step, setStep] = useState<'email' | 'code'>('email');
   const [email, setEmail] = useState('');
+  const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
-  const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function sendLink(e: React.FormEvent) {
+  async function sendCode(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
     setError(null);
     const { error } = await supabase.auth.signInWithOtp({
       email: email.trim(),
-      options: {
-        shouldCreateUser: true,
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
+      options: { shouldCreateUser: true },
     });
     setBusy(false);
     if (error) return setError(error.message);
-    setSent(true);
+    setStep('code');
+  }
+
+  async function verifyCode(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    const { error } = await supabase.auth.verifyOtp({
+      email: email.trim(),
+      token: code.trim(),
+      type: 'email',
+    });
+    setBusy(false);
+    if (error) return setError(error.message);
+    router.replace('/learn');
+    router.refresh();
   }
 
   async function google() {
@@ -53,22 +70,8 @@ export default function LoginPage() {
         </p>
       </div>
 
-      {sent ? (
-        <div className="rounded-2xl border bg-card p-5 text-center shadow-card">
-          <p className="text-sm">
-            Check <span className="font-semibold text-foreground">{email}</span> for a
-            sign-in link and open it on this device.
-          </p>
-          <button
-            type="button"
-            onClick={() => setSent(false)}
-            className="mt-3 text-xs text-muted-foreground underline"
-          >
-            Use a different email
-          </button>
-        </div>
-      ) : (
-        <form onSubmit={sendLink} className="space-y-3">
+      {step === 'email' ? (
+        <form onSubmit={sendCode} className="space-y-3">
           <input
             type="email"
             required
@@ -79,8 +82,38 @@ export default function LoginPage() {
             className="w-full rounded-xl border bg-card px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-ring"
           />
           <Button type="submit" disabled={busy} className="w-full">
-            {busy ? 'Sending…' : 'Email me a sign-in link'}
+            {busy ? 'Sending…' : 'Email me a code'}
           </Button>
+        </form>
+      ) : (
+        <form onSubmit={verifyCode} className="space-y-3">
+          <p className="text-center text-sm text-muted-foreground">
+            Enter the 6-digit code sent to{' '}
+            <span className="font-medium text-foreground">{email}</span>
+          </p>
+          <input
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            required
+            autoFocus
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+            placeholder="123456"
+            className="w-full rounded-xl border bg-card px-4 py-3 text-center text-lg tracking-[0.4em] outline-none focus:ring-2 focus:ring-ring"
+          />
+          <Button type="submit" disabled={busy} className="w-full">
+            {busy ? 'Verifying…' : 'Verify & continue'}
+          </Button>
+          <button
+            type="button"
+            onClick={() => {
+              setStep('email');
+              setCode('');
+            }}
+            className="w-full text-center text-xs text-muted-foreground underline"
+          >
+            Use a different email
+          </button>
         </form>
       )}
 
