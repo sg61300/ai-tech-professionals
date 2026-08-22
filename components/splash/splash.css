@@ -1,0 +1,56 @@
+/* Splash / first-open screen — mascot blended into the scene + minimal sheet.
+   Ported from Design/activation-spine.html §1, mapped to our tokens (auto dark).
+   Scoped under .splash-screen. */
+
+.splash-screen { position: relative; z-index: 1; flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+.splash-aura {
+  position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(460px 340px at 50% 34%, color-mix(in srgb, var(--violet) 24%, transparent), transparent 66%),
+    radial-gradient(420px 320px at 50% 92%, color-mix(in srgb, var(--teal) 22%, transparent), transparent 66%);
+}
+
+.splash-screen .brandlock { position: relative; z-index: 3; display: flex; align-items: center; gap: 8px; justify-content: center; padding: 18px 0 2px; }
+.splash-screen .brandlock img { width: 26px; height: 26px; border-radius: 8px; object-fit: cover; object-position: 50% 22%; box-shadow: 0 3px 8px rgba(139,92,246,.35); }
+.splash-screen .brandlock b { font-family: var(--font-poppins), sans-serif; font-weight: 800; font-size: 15px; letter-spacing: -.01em; background: linear-gradient(100deg, var(--teal), var(--violet)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+.splash-stage { position: relative; z-index: 1; flex: 1; display: flex; align-items: flex-end; justify-content: center; min-height: 0; }
+.mascot-scene { position: relative; width: 100%; height: 100%; min-height: 300px; display: flex; align-items: flex-end; justify-content: center; }
+.pedestal { position: absolute; left: 50%; bottom: 7%; width: 158px; height: 40px; transform: translateX(-50%); border-radius: 50%; z-index: 1; background: radial-gradient(ellipse at center, rgba(139,92,246,.5), rgba(20,184,166,.28) 46%, transparent 72%); filter: blur(2px); }
+.pedestal::after { content: ""; position: absolute; left: 50%; top: 52%; transform: translateX(-50%); width: 120px; height: 15px; border-radius: 50%; background: radial-gradient(ellipse, rgba(13,40,36,.32), transparent 70%); filter: blur(3px); }
+.glowring { position: absolute; left: 50%; bottom: 12%; width: 190px; height: 190px; transform: translateX(-50%); border-radius: 50%; border: 1.5px solid rgba(139,92,246,.26); z-index: 1; }
+.mascot-cut { position: relative; z-index: 2; width: 210px; height: 268px; margin-bottom: 9%; object-fit: contain; object-position: center bottom; filter: drop-shadow(0 18px 24px rgba(139,92,246,.38)); transform-origin: 50% 92%; }
+
+.forbit { position: absolute; z-index: 2; display: grid; place-items: center; width: 42px; height: 42px; border-radius: 14px; font-size: 19px; background: color-mix(in srgb, var(--card) 84%, transparent); border: 1px solid var(--border); box-shadow: 0 8px 18px rgba(13,40,36,.2); backdrop-filter: blur(3px); }
+.forbit.f1 { left: 11%; top: 30%; } .forbit.f2 { right: 12%; top: 22%; } .forbit.f3 { right: 14%; bottom: 36%; } .forbit.f4 { left: 15%; bottom: 32%; }
+.spark { position: absolute; z-index: 2; width: 7px; height: 7px; border-radius: 50%; background: radial-gradient(circle, #c4b5fd 0 40%, transparent 70%); box-shadow: 0 0 10px 2px rgba(167,139,250,.7); }
+.spark.s1 { left: 26%; top: 24%; } .spark.s2 { right: 28%; top: 30%; width: 5px; height: 5px; } .spark.s3 { right: 34%; bottom: 40%; }
+
+.sheet { position: relative; z-index: 3; padding: 2px 26px 26px; display: flex; flex-direction: column; gap: 11px; align-items: center; text-align: center; }
+.sheet h1 { font-family: var(--font-poppins), sans-serif; font-weight: 800; font-size: 26px; line-height: 1.16; letter-spacing: -.02em; margin: 0; max-width: 16ch; color: var(--foreground); }
+.sheet h1 em { font-style: normal; background: linear-gradient(100deg, var(--teal-deep), var(--violet)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.sheet .sub { font-size: 13px; color: var(--muted-foreground); max-width: 30ch; margin: 0; }
+.valstrip { display: flex; gap: 7px; justify-content: center; flex-wrap: wrap; margin: 1px 0 3px; }
+.valstrip span { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; color: var(--foreground); background: color-mix(in srgb, var(--card) 72%, transparent); border: 1px solid var(--border); padding: 5px 10px; border-radius: 999px; }
+.splash-cta { width: 100%; display: flex; flex-direction: column; gap: 9px; margin-top: 2px; }
+.splash-cta .cta-primary { width: 100%; padding: 14px; border-radius: 14px; font-family: var(--font-poppins), sans-serif; font-weight: 700; font-size: 15px; text-align: center; background: var(--coral); color: #fff; box-shadow: 0 10px 22px rgba(232,84,62,.34); transition: transform .12s; }
+.splash-cta .cta-primary:active { transform: translateY(1px); }
+.signlink { font-size: 12.5px; color: var(--muted-foreground); }
+.signlink b { color: var(--teal-deep); font-weight: 700; }
+.legal { font-size: 10px; color: var(--muted-foreground); margin: 1px auto 0; max-width: 34ch; }
+
+@keyframes splashFloat { 0%,100% { transform: translateY(0) rotate(-1.2deg); } 50% { transform: translateY(-9px) rotate(1.2deg); } }
+@keyframes splashChipFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+@keyframes splashPed { 0%,100% { opacity: .8; transform: translateX(-50%) scale(1); } 50% { opacity: 1; transform: translateX(-50%) scale(1.06); } }
+@keyframes splashRing { 0%,100% { transform: translateX(-50%) rotate(-6deg) scale(1); opacity: .45; } 50% { transform: translateX(-50%) rotate(6deg) scale(1.04); opacity: .75; } }
+@keyframes splashSparkle { 0%,100% { opacity: .3; transform: scale(.8); } 50% { opacity: 1; transform: scale(1.2); } }
+@media (prefers-reduced-motion: no-preference) {
+  .mascot-cut { animation: splashFloat 5.5s ease-in-out infinite; }
+  .pedestal { animation: splashPed 4s ease-in-out infinite; }
+  .glowring { animation: splashRing 9s ease-in-out infinite; }
+  .forbit { animation: splashChipFloat 3.4s ease-in-out infinite; }
+  .forbit.f2 { animation-delay: .5s; } .forbit.f3 { animation-delay: 1s; } .forbit.f4 { animation-delay: 1.6s; }
+  .spark { animation: splashSparkle 2.6s ease-in-out infinite; }
+  .spark.s2 { animation-delay: .8s; } .spark.s3 { animation-delay: 1.5s; }
+}

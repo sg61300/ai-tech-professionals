@@ -38,6 +38,7 @@ export async function updateSession(request: NextRequest) {
   const isPublic =
     isAuthRoute ||
     pathname.startsWith("/auth") || // OAuth/OTP callback
+    (process.env.NODE_ENV !== "production" && pathname.startsWith("/dev-preview")) || // dev-only visual QA harness
     pathname === "/";
 
   // Unauthenticated users hitting an app route -> login.

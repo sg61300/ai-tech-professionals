@@ -3,32 +3,34 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { displayName } from "@/lib/display";
 import { levelProgress } from "@/lib/xp";
-import { SignOutButton } from "@/components/auth/SignOutButton";
-import { RuneMascot } from "@/components/brand/RuneMascot";
+import { LessonPath, L1_PREVIEW_PATH } from "@/components/brand/LessonPath";
+import { TabBar } from "@/components/app/TabBar";
 import { RuneLoader } from "@/components/brand/RuneLoader";
 
 /**
- * Slice 0 dashboard SHELL. Streams: the page shell paints instantly with the
- * "Rune is Tuning" loader while the profile query resolves (so post-sign-in
- * latency shows our loader, not a blank screen). Real Learn path = Slice 1.
+ * Learn home (ADR-015/017). Top bar (level/XP/streak) + Rune greeting + the
+ * vertical winding path + bottom tab nav. Streams behind the "Rune is Tuning"
+ * loader while the profile resolves.
+ *
+ * NOTE: the path currently renders the representative L1 layout. Wiring it to
+ * live `lesson_progress` (real done/current/locked nodes) lands with the L1
+ * content seed, next in Slice 1.
  */
 export default function LearnPage() {
   return (
-    <main className="mx-auto w-full max-w-md flex-1 px-5 py-8">
-      <Suspense
-        fallback={
-          <div className="flex min-h-[60vh] items-center justify-center">
-            <RuneLoader size={200} />
-          </div>
-        }
-      >
-        <Dashboard />
-      </Suspense>
-    </main>
+    <Suspense
+      fallback={
+        <div className="flex min-h-[70vh] items-center justify-center">
+          <RuneLoader size={200} />
+        </div>
+      }
+    >
+      <LearnHome />
+    </Suspense>
   );
 }
 
-async function Dashboard() {
+async function LearnHome() {
   const supabase = await createClient();
   const {
     data: { user },
@@ -37,50 +39,61 @@ async function Dashboard() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("name, avatar_name, xp, level, streak_count")
+    .select("name, avatar_name, avatar_key, xp, level, streak_count, onboarding_complete")
     .eq("id", user.id)
     .single();
 
+  // First-time users must finish onboarding before the dashboard (PRD/13).
+  if (!profile?.onboarding_complete) redirect("/onboarding");
+
   const name = displayName(profile ?? {});
   const xp = profile?.xp ?? 0;
+  const streak = profile?.streak_count ?? 0;
   const { level, progress } = levelProgress(xp);
 
   return (
-    <>
-      <header className="flex items-center justify-between">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-violet">
-            Slice 0 · Dashboard shell
-          </p>
-          <h1 className="mt-1 text-2xl font-extrabold">Hi {name} 👋</h1>
-          <p className="text-sm text-muted-foreground">{user.email}</p>
+    <div className="lh">
+      <header className="topbar">
+        <div className="topbar-row">
+          <span className="flame">🔥 {streak}</span>
+          <span className="prog">
+            <i style={{ width: `${Math.round(progress * 100)}%` }} />
+          </span>
+          <span className="xp">
+            L{level} · {xp.toLocaleString()} XP
+          </span>
         </div>
-        <SignOutButton />
       </header>
 
-      <section className="mt-6 rounded-2xl border bg-card p-5 shadow-card">
-        <div className="flex items-center gap-4">
-          <RuneMascot state="idle" spriteSrc="/mascot/rune-hero-clean.png" dimensions={84} />
-          <div className="flex-1">
-            <div className="flex items-center justify-between text-sm">
-              <span className="font-semibold">Level {level}</span>
-              <span className="text-muted-foreground">
-                🔥 {profile?.streak_count ?? 0} · {xp} XP
-              </span>
-            </div>
-            <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-muted">
-              <div
-                className="h-full rounded-full bg-teal transition-all"
-                style={{ width: `${Math.round(progress * 100)}%` }}
-              />
-            </div>
+      <div className="greetbar">
+        <div className="mascot">
+          <div className="rune">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/mascot/rune-hero-clean.png" alt="Rune" />
+          </div>
+          <div className="bubble">
+            {streak >= 2 ? (
+              <>
+                🔥 <b>Day {streak}</b>, {name}. Pick up where you left off.
+              </>
+            ) : (
+              <>
+                Welcome back, <b>{name}</b>! Ready for a 5-minute win?
+              </>
+            )}
           </div>
         </div>
-        <p className="mt-4 text-sm text-muted-foreground">
-          You&apos;re signed in and reading a real Supabase session. The learning
-          path arrives in Slice 1.
-        </p>
-      </section>
-    </>
+      </div>
+
+      <main className="lh-content">
+        <div className="prow">
+          <span className="plab">Your path</span>
+          <span className="punit">Level 1 · HR &amp; AI</span>
+        </div>
+        <LessonPath data={L1_PREVIEW_PATH} />
+      </main>
+
+      <TabBar avatarKey={profile?.avatar_key} />
+    </div>
   );
 }

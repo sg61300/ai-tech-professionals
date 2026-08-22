@@ -32,6 +32,10 @@ export default function LoginPage() {
 
   async function sendCode(e: React.FormEvent) {
     e.preventDefault();
+    if (!email.trim()) {
+      setError('Please enter your email to continue.');
+      return;
+    }
     setBusy(true);
     setError(null);
     const supabase = createClient();
@@ -94,13 +98,20 @@ export default function LoginPage() {
       </div>
 
       {step === 'email' ? (
-        <form onSubmit={sendCode} className="space-y-3">
+        <form onSubmit={sendCode} noValidate className="space-y-3">
+          {error && (
+            <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm font-medium text-[#b42318] dark:text-[#fca5a5]">
+              {error}
+            </p>
+          )}
           <input
             type="email"
-            required
             autoFocus
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              if (error) setError(null); // clear the "enter your email" error as they type
+            }}
             placeholder="you@work.com"
             className="w-full rounded-xl border bg-card px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-ring"
           />
@@ -149,7 +160,10 @@ export default function LoginPage() {
         Continue with Google
       </Button>
 
-      {error && <p className="mt-4 text-center text-sm text-error">{error}</p>}
+      {/* Email-step errors render above the input; show others (code/Google) here. */}
+      {step === 'code' && error && (
+        <p className="mt-4 text-center text-sm text-error">{error}</p>
+      )}
     </main>
   );
 }
