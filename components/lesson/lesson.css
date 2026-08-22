@@ -1,0 +1,317 @@
+/* Lesson runner — immersive, full-height inside the .app-surface frame.
+   Uses the Teal & Coral tokens (globals.css); no hardcoded palette. */
+
+.lr {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
+.lr-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px 6px;
+}
+.lr-icon {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--foreground);
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+}
+.lr-icon:active {
+  transform: scale(0.94);
+}
+.lr-bar {
+  flex: 1;
+  height: 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--muted-foreground) 22%, transparent);
+  overflow: hidden;
+}
+.lr-bar > i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--teal), var(--violet));
+  transition: width 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.lr-body {
+  flex: 1;
+  padding: 10px 20px 20px;
+  overflow-y: auto;
+}
+
+.lr-kicker {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--teal);
+  margin-bottom: 6px;
+}
+.lr-title {
+  font-family: var(--font-heading), sans-serif;
+  font-size: 25px;
+  font-weight: 700;
+  line-height: 1.15;
+  margin-bottom: 16px;
+}
+.lr-q {
+  font-family: var(--font-heading), sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.25;
+  margin-bottom: 18px;
+}
+
+.lr-md {
+  font-size: 15.5px;
+  line-height: 1.6;
+  color: var(--foreground);
+  margin-bottom: 14px;
+}
+
+.lr-callout {
+  display: flex;
+  gap: 10px;
+  padding: 13px 14px;
+  border-radius: var(--radius-lg);
+  margin-bottom: 14px;
+  border: 1px solid var(--border);
+  background: var(--card);
+}
+.lr-callout .lr-md {
+  margin-bottom: 0;
+}
+.lr-callout-ic {
+  font-size: 18px;
+  line-height: 1.5;
+}
+.lr-callout.tip {
+  border-color: color-mix(in srgb, var(--success) 45%, var(--border));
+  background: color-mix(in srgb, var(--success) 10%, var(--card));
+}
+.lr-callout.warn {
+  border-color: color-mix(in srgb, var(--amber) 50%, var(--border));
+  background: color-mix(in srgb, var(--amber) 12%, var(--card));
+}
+.lr-callout.ai {
+  border-color: color-mix(in srgb, var(--violet) 50%, var(--border));
+  background: color-mix(in srgb, var(--violet) 12%, var(--card));
+}
+.lr-callout.info {
+  border-color: color-mix(in srgb, var(--teal) 45%, var(--border));
+  background: color-mix(in srgb, var(--teal) 10%, var(--card));
+}
+
+.lr-quote {
+  border-left: 3px solid var(--coral);
+  padding-left: 14px;
+  margin-bottom: 14px;
+  font-style: italic;
+}
+.lr-quote cite {
+  display: block;
+  font-size: 13px;
+  color: var(--muted-foreground);
+}
+.lr-img {
+  max-width: 100%;
+  border-radius: var(--radius-lg);
+  margin-bottom: 14px;
+}
+
+/* Exercise + grill options */
+.lr-opts {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.lr-opt {
+  position: relative;
+  text-align: left;
+  padding: 14px 42px 14px 16px;
+  border-radius: var(--radius-lg);
+  border: 1.5px solid var(--border);
+  background: var(--card);
+  color: var(--foreground);
+  font-size: 15px;
+  line-height: 1.4;
+  cursor: pointer;
+  transition:
+    transform 0.12s ease,
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+.lr-opt:not(:disabled):active {
+  transform: scale(0.985);
+}
+.lr-opt.right {
+  border-color: var(--success);
+  background: color-mix(in srgb, var(--success) 14%, var(--card));
+}
+.lr-opt.wrong {
+  border-color: var(--coral);
+  background: color-mix(in srgb, var(--coral) 12%, var(--card));
+}
+.lr-opt.chosen {
+  border-color: var(--violet);
+  background: color-mix(in srgb, var(--violet) 12%, var(--card));
+}
+.lr-opt.dim {
+  opacity: 0.5;
+}
+.lr-tick {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-weight: 800;
+}
+.lr-opt.right .lr-tick {
+  color: var(--success);
+}
+.lr-opt.wrong .lr-tick {
+  color: var(--coral);
+}
+
+.lr-feedback,
+.lr-retort {
+  margin-top: 16px;
+  padding: 13px 14px;
+  border-radius: var(--radius-lg);
+  font-size: 14.5px;
+  line-height: 1.5;
+  animation: lr-rise 0.28s ease both;
+}
+.lr-feedback.good {
+  background: color-mix(in srgb, var(--success) 14%, var(--card));
+  border: 1px solid color-mix(in srgb, var(--success) 45%, var(--border));
+}
+.lr-feedback.bad {
+  background: color-mix(in srgb, var(--coral) 12%, var(--card));
+  border: 1px solid color-mix(in srgb, var(--coral) 45%, var(--border));
+}
+.lr-retort {
+  background: color-mix(in srgb, var(--violet) 12%, var(--card));
+  border: 1px solid color-mix(in srgb, var(--violet) 45%, var(--border));
+}
+
+/* Footer CTA */
+.lr-foot {
+  padding: 12px 20px calc(12px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--border);
+  background: var(--background);
+}
+.lr-cta {
+  width: 100%;
+  padding: 15px;
+  border-radius: var(--radius-xl);
+  border: none;
+  background: var(--coral);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.12s ease, opacity 0.15s ease;
+}
+.lr-cta:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.lr-cta:not(:disabled):active {
+  transform: scale(0.98);
+}
+
+/* Done / celebration */
+.lr-done {
+  min-height: 70dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 12px;
+}
+.lr-rune-hop img {
+  width: 150px;
+  height: auto;
+  animation: lr-hop 0.9s cubic-bezier(0.28, 0.84, 0.42, 1) 2;
+}
+.lr-done-title {
+  font-family: var(--font-heading), sans-serif;
+  font-size: 26px;
+  font-weight: 800;
+}
+.lr-done-sub {
+  color: var(--muted-foreground);
+  max-width: 22rem;
+}
+.lr-rewards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin: 4px 0 8px;
+}
+.lr-reward {
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 14px;
+}
+.lr-reward.xp {
+  background: color-mix(in srgb, var(--teal) 16%, var(--card));
+  color: var(--teal-deep, var(--teal));
+  border: 1px solid color-mix(in srgb, var(--teal) 40%, var(--border));
+}
+.lr-reward.lvl {
+  background: color-mix(in srgb, var(--violet) 16%, var(--card));
+  color: var(--violet);
+  border: 1px solid color-mix(in srgb, var(--violet) 40%, var(--border));
+}
+.lr-reward.streak {
+  background: color-mix(in srgb, var(--amber) 18%, var(--card));
+  border: 1px solid color-mix(in srgb, var(--amber) 45%, var(--border));
+}
+.lr-done .lr-cta {
+  max-width: 20rem;
+  margin-top: 8px;
+}
+
+@keyframes lr-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes lr-hop {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-22px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lr-rune-hop img,
+  .lr-feedback,
+  .lr-retort,
+  .lr-bar > i {
+    animation: none;
+    transition: none;
+  }
+}

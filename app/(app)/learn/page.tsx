@@ -1,9 +1,13 @@
 import { Suspense } from "react";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { displayName } from "@/lib/display";
 import { levelProgress } from "@/lib/xp";
-import { LessonPath, L1_PREVIEW_PATH } from "@/components/brand/LessonPath";
+import { L1_SPINE, getLesson } from "@/content";
+import { computeNodeStates, nextPlayableLesson } from "@/lib/progression";
+import { LessonPath } from "@/components/brand/LessonPath";
+import { buildLearnPath } from "@/components/brand/learnPath";
 import { TabBar } from "@/components/app/TabBar";
 import { RuneLoader } from "@/components/brand/RuneLoader";
 
@@ -51,6 +55,20 @@ async function LearnHome() {
   const streak = profile?.streak_count ?? 0;
   const { level, progress } = levelProgress(xp);
 
+  // Live progression: which lessons are done drives every node's state.
+  const { data: progressRows } = await supabase
+    .from("lesson_progress")
+    .select("lesson_id, status")
+    .eq("user_id", user.id)
+    .eq("status", "done");
+  const completed = new Set((progressRows ?? []).map((r) => r.lesson_id));
+  const states = computeNodeStates(L1_SPINE, completed);
+  const pathData = buildLearnPath(L1_SPINE, states);
+
+  const resumeId = nextPlayableLesson(L1_SPINE, completed);
+  const resumeLesson = resumeId ? getLesson(resumeId) : null;
+  const allDone = resumeId === null;
+
   return (
     <div className="lh">
       <header className="topbar">
@@ -78,7 +96,7 @@ async function LearnHome() {
               </>
             ) : (
               <>
-                Welcome back, <b>{name}</b>! Ready for a 5-minute win?
+                Welcome, <b>{name}</b>! Ready for a 5-minute win?
               </>
             )}
           </div>
@@ -86,11 +104,26 @@ async function LearnHome() {
       </div>
 
       <main className="lh-content">
+        {resumeLesson ? (
+          <Link href={`/learn/lesson/${resumeLesson.id}`} className="resume-card">
+            <span className="resume-kick">{completed.size === 0 ? "Start here" : "Continue"}</span>
+            <span className="resume-title">
+              Lesson {resumeLesson.id.replace(/^l/, "")} · {resumeLesson.title}
+            </span>
+            <span className="resume-go">Begin →</span>
+          </Link>
+        ) : allDone ? (
+          <div className="resume-card done">
+            <span className="resume-kick">Unit 1 complete 🎉</span>
+            <span className="resume-title">Your next milestone unlocks soon.</span>
+          </div>
+        ) : null}
+
         <div className="prow">
           <span className="plab">Your path</span>
           <span className="punit">Level 1 · HR &amp; AI</span>
         </div>
-        <LessonPath data={L1_PREVIEW_PATH} />
+        <LessonPath data={pathData} />
       </main>
 
       <TabBar avatarKey={profile?.avatar_key} />

@@ -5,6 +5,8 @@
  * layout with `greyed`. Ported faithfully from Design/learn-home-prototype.html.
  */
 
+import Link from "next/link";
+
 export type PathNodeKind = "done" | "dsim" | "cur" | "next" | "sim" | "lock";
 
 export type PathNode = {
@@ -13,6 +15,10 @@ export type PathNode = {
   label: string;
   left: string;
   top: string;
+  /** When set, the node is a tappable link (unlocked lessons). */
+  href?: string;
+  /** Accessible label for a link node. */
+  ariaLabel?: string;
   /** Sim nodes get an animated ripple ring. */
   ring?: boolean;
   vlab?: {
@@ -57,9 +63,20 @@ export function LessonPath({ data, greyed = false }: { data: PathData; greyed?: 
         {data.nodes.map((n, i) => (
           <span key={`n-${i}`}>
             {n.ring && <span className="simring" style={{ left: n.left, top: n.top }} />}
-            <span className={`pn ${n.kind}`} style={{ left: n.left, top: n.top }}>
-              {n.label}
-            </span>
+            {n.href && !greyed ? (
+              <Link
+                href={n.href}
+                aria-label={n.ariaLabel}
+                className={`pn ${n.kind}`}
+                style={{ left: n.left, top: n.top }}
+              >
+                {n.label}
+              </Link>
+            ) : (
+              <span className={`pn ${n.kind}`} style={{ left: n.left, top: n.top }}>
+                {n.label}
+              </span>
+            )}
             {n.vlab && (
               <span
                 className="vlab"
