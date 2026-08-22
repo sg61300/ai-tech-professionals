@@ -11,12 +11,6 @@ export function Splash() {
     <main className="splash-screen">
       <div className="splash-aura" />
 
-      <div className="brandlock">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/mascot/rune-canonical.png" alt="" />
-        <b>AI &amp; Tech for Pros</b>
-      </div>
-
       <div className="splash-stage">
         <div className="mascot-scene">
           <div className="glowring" />
