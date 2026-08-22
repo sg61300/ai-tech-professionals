@@ -43,7 +43,7 @@ export const L1_SPINE: SpineNode[] = [
     title: "Taste Sim",
     glyph: "🏁",
     unlockAfter: ["l1", "l2"],
-    playable: false,
+    playable: true,
   },
   { id: "l3", kind: "lesson", title: "Context is everything", unlockAfter: ["l2"], playable: true },
   { id: "l4", kind: "lesson", title: "Tokens & the context window", unlockAfter: ["l3"], playable: true },

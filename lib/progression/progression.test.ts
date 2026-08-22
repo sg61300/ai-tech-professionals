@@ -18,10 +18,10 @@ describe("computeNodeStates", () => {
     expect(s.l3).toBe("locked");
   });
 
-  it("unlocks the taste sim as 'soon' once L1+L2 are done (not yet playable)", () => {
+  it("unlocks the taste sim as 'available' (playable) once L1+L2 are done", () => {
     const s = computeNodeStates(L1_SPINE, new Set(["l1", "l2"]));
     expect(s.l2).toBe("done");
-    expect(s["taste-sim"]).toBe("soon"); // unlocked but this build can't run it yet
+    expect(s["taste-sim"]).toBe("available"); // playable sim node
     expect(s.l3).toBe("current"); // lesson frontier moves on
   });
 

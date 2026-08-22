@@ -1,0 +1,139 @@
+/* Taste sim runner — builds on the lesson runner's .lr-* classes.
+   Only the sim-specific bits live here. Teal & Coral tokens. */
+
+.ts-bar {
+  margin: 6px 16px 2px;
+  padding: 10px 12px;
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--violet) 8%, var(--card));
+  border: 1px solid color-mix(in srgb, var(--violet) 28%, var(--border));
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--muted-foreground);
+}
+.ts-bar b {
+  color: var(--foreground);
+}
+.ts-part {
+  white-space: normal;
+}
+
+.ts-beat {
+  margin-top: 16px;
+  padding: 11px 13px;
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--teal) 10%, var(--card));
+  border-left: 3px solid var(--teal);
+  font-size: 13.5px;
+  font-style: italic;
+  color: var(--foreground);
+}
+
+/* Context chips */
+.ts-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+.ts-chip {
+  padding: 10px 13px;
+  border-radius: 999px;
+  border: 1.5px solid var(--border);
+  background: var(--card);
+  color: var(--foreground);
+  font-size: 13.5px;
+  cursor: pointer;
+  transition: transform 0.1s ease, border-color 0.15s ease, background 0.15s ease;
+}
+.ts-chip:active {
+  transform: scale(0.96);
+}
+.ts-chip.on {
+  border-color: var(--teal);
+  background: color-mix(in srgb, var(--teal) 16%, var(--card));
+  font-weight: 600;
+}
+.ts-chip.distractor {
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--coral) 45%, var(--border));
+  color: var(--muted-foreground);
+}
+.ts-count {
+  margin-top: 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted-foreground);
+}
+.ts-rec {
+  margin-left: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--teal);
+  vertical-align: middle;
+}
+
+/* Assembled review, colour-tagged by prompt part */
+.ts-review {
+  font-size: 15px;
+  line-height: 1.75;
+  color: var(--foreground);
+}
+.ts-tag {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 7px;
+  border-radius: 999px;
+  margin: 0 3px;
+  vertical-align: middle;
+  color: #fff;
+}
+.ts-tag.role {
+  background: var(--violet);
+}
+.ts-tag.ctx {
+  background: var(--teal);
+}
+.ts-tag.task {
+  background: var(--coral);
+}
+.ts-tag.fmt {
+  background: var(--amber);
+  color: #3a2a00;
+}
+
+/* Generated email */
+.ts-email {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: var(--font-sans), sans-serif;
+  font-size: 14.5px;
+  line-height: 1.6;
+  padding: 16px;
+  border-radius: var(--radius-lg);
+  background: var(--card);
+  border: 1px solid var(--border);
+  min-height: 40vh;
+}
+
+.ts-grill {
+  width: 100%;
+  margin-top: 8px;
+  text-align: left;
+}
+.ts-actions {
+  width: 100%;
+  max-width: 22rem;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 18px;
+}
+.ts-actions .lr-opt {
+  text-align: center;
+  padding: 13px;
+}

@@ -59,7 +59,6 @@ export function buildLearnPath(spine: SpineNode[], states: Record<string, NodeSt
     const kind = KIND_BY_STATE[state];
     const isLesson = s.kind === "lesson";
     const label = isLesson ? s.id.replace(/^l/, "") : (s.glyph ?? "•");
-    const clickable = isLesson && (state === "current" || state === "done" || state === "available");
     const leftPct = `${left(i)}%`;
     const topPct = `${top(i)}%`;
 
@@ -68,11 +67,15 @@ export function buildLearnPath(spine: SpineNode[], states: Record<string, NodeSt
       label,
       left: leftPct,
       top: topPct,
-      ring: state === "soon" && (s.kind === "sim" || s.kind === "taste"),
+      // Playable sims show the ripple ring; unbuilt milestones ("soon") too.
+      ring: (s.kind === "sim" || s.kind === "taste") && (state === "available" || state === "soon"),
     };
-    if (clickable) {
+    if (isLesson && (state === "current" || state === "done" || state === "available")) {
       node.href = `/learn/lesson/${s.id}`;
       node.ariaLabel = `${state === "done" ? "Review" : "Start"} lesson: ${s.title}`;
+    } else if (s.kind === "taste" && state === "available") {
+      node.href = `/learn/sim/${s.id}`;
+      node.ariaLabel = `Start: ${s.title}`;
     }
 
     // Side labels for the non-lesson milestones so learners know what's ahead.
