@@ -1,5 +1,6 @@
 import { L1_UNIT1 } from "@/content/lessons/l1-unit1";
-import { LessonSchema, type Lesson } from "@/content/schema";
+import { TASTE_SIM } from "@/content/sims/taste";
+import { LessonSchema, TasteSimSchema, type Lesson, type TasteSim } from "@/content/schema";
 
 /**
  * Content registry (git = source of truth, IMPLEMENTATION-PLAN §3.5). The app
@@ -68,3 +69,8 @@ export const L1_SPINE: SpineNode[] = [
 
 /** XP awarded for finishing a lesson (kept here so the runner and seed agree). */
 export const LESSON_XP = 20;
+
+/** The taste sim, validated at import (its own XP lives on the object). */
+export const tasteSim: TasteSim = TasteSimSchema.parse(TASTE_SIM);
+export const getSim = (id: string): TasteSim | undefined =>
+  id === tasteSim.id ? tasteSim : undefined;

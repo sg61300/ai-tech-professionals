@@ -102,7 +102,83 @@ export const SimScriptSchema = z
   });
 export type SimScript = z.infer<typeof SimScriptSchema>;
 
+// --- Taste sim (PRD/08) -----------------------------------------------------
+// A guided 4-part-prompt builder, structurally distinct from the generic
+// SimScript (email/system, Slice 3): no rubric (success = completion), rich
+// per-step interactions. Bespoke shape so we don't over-generalize the shared
+// schema before the other sims exist.
+const RoleOptionSchema = z.object({
+  label: z.string().min(1),
+  /** Text inserted into the prompt bar when chosen. */
+  value: z.string().min(1),
+  correct: z.boolean(),
+  /** Playful one-liner shown when a wrong role is tapped (no penalty). */
+  preview: z.string().optional(),
+  /** Gentle nudge back to the right role. */
+  nudge: z.string().optional(),
+});
+const ContextFactSchema = z.object({
+  label: z.string().min(1), // chip label
+  value: z.string().min(1), // text folded into the assembled prompt
+});
+const DistractorSchema = z.object({
+  label: z.string().min(1),
+  /** Shown on tap — a privacy/relevance teaching moment; never selects. */
+  warning: z.string().min(1),
+});
+const FormatToggleSchema = z.object({
+  label: z.string().min(1),
+  value: z.string().min(1),
+  recommended: z.boolean(),
+});
+
+export const TasteSimSchema = z.object({
+  id: z.string().min(1),
+  kind: z.literal("taste"),
+  xp: z.number().int().positive(),
+  badge: z.string().min(1),
+  intro: z.object({ copy: z.string().min(1), cta: z.string().min(1) }),
+  role: z.object({
+    promptBar: z.string().min(1), // e.g. "You are ___"
+    copy: z.string().min(1),
+    decisionBeat: z.string().min(1),
+    options: z
+      .array(RoleOptionSchema)
+      .min(2)
+      .refine((o) => o.some((x) => x.correct), "taste sim role needs a correct option"),
+  }),
+  context: z.object({
+    promptBar: z.string().min(1),
+    copy: z.string().min(1),
+    minSelect: z.number().int().positive(),
+    decisionBeat: z.string().min(1),
+    facts: z.array(ContextFactSchema).min(1),
+    distractors: z.array(DistractorSchema).default([]),
+  }),
+  format: z.object({
+    promptBar: z.string().min(1),
+    copy: z.string().min(1),
+    decisionBeat: z.string().min(1),
+    toggles: z.array(FormatToggleSchema).min(1),
+  }),
+  assembled: z.object({
+    task: z.string().min(1), // the fixed [Task] line
+    preface: z.string().min(1), // "You built this. Ready to watch it work?"
+    cta: z.string().min(1), // "Generate my email"
+  }),
+  liveGen: z.object({
+    /** Server builds the final prompt from the user's selections around this. */
+    promptTemplate: z.string().min(1),
+  }),
+  /** Golden sample email — the scripted fallback on slow/error/quota. */
+  fallbackOutput: z.string().min(1),
+  celebration: z.object({ copy: z.string().min(1) }),
+  grillBeat: GrillBeatSchema,
+});
+export type TasteSim = z.infer<typeof TasteSimSchema>;
+
 // --- Parse helpers (used by content files + the seed script) ----------------
 export const parseLesson = (data: unknown): Lesson => LessonSchema.parse(data);
 export const parseRapidFire = (data: unknown): RapidFireItem => RapidFireItemSchema.parse(data);
 export const parseSim = (data: unknown): SimScript => SimScriptSchema.parse(data);
+export const parseTasteSim = (data: unknown): TasteSim => TasteSimSchema.parse(data);
