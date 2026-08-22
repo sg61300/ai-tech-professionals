@@ -84,7 +84,7 @@ export type LockedLevel = keyof typeof LEVEL_PREVIEWS;
 // --- How-it-works intro cards (PRD/13 resolved-decision #1, kept) ------------
 export const INTRO_CARDS = [
   { emoji: "📚", md: "**Learn** in 5-minute lessons that end in a real win." },
-  { emoji: "🛠️", md: "**Practice** on real HR tasks in gamified simulations." },
+  { emoji: "🛠️", md: "**Practice** on real work tasks in gamified simulations." },
   { emoji: "🔥", md: "**Level up**, build streaks, earn XP, become the AI person on your team." },
 ] as const;
 
