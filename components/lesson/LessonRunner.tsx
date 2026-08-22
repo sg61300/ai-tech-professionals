@@ -38,7 +38,14 @@ function Md({ children }: { children: string }): ReactNode {
   return <>{out}</>;
 }
 
-export function LessonRunner({ lesson }: { lesson: Lesson }) {
+export function LessonRunner({
+  lesson,
+  completeAction = completeLesson,
+}: {
+  lesson: Lesson;
+  /** Injectable seam so the dev-preview harness can stub the DB write (mirrors OnboardingFlow). */
+  completeAction?: (lessonId: string, correct: boolean) => Promise<CompleteLessonResult>;
+}) {
   const router = useRouter();
   const hasGrill = !!lesson.grillBeat;
 
@@ -59,7 +66,7 @@ export function LessonRunner({ lesson }: { lesson: Lesson }) {
 
   async function finish() {
     setSaving(true);
-    const r = await completeLesson(lesson.id, correct);
+    const r = await completeAction(lesson.id, correct);
     setResult(r);
     setSaving(false);
     setPhase("done");
