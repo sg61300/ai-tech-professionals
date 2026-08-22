@@ -144,7 +144,7 @@ export default function LoginPage() {
               setStep('email');
               setCode('');
             }}
-            className="w-full text-center text-xs text-muted-foreground underline"
+            className="w-full text-center text-xs text-muted-foreground underline transition-colors hover:text-foreground"
           >
             Use a different email
           </button>

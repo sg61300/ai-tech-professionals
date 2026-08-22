@@ -459,3 +459,77 @@
   .lesson-path.greyed { filter: grayscale(1); opacity: .38; pointer-events: none; }
   .lesson-path.greyed .parc, .lesson-path.greyed .parc.hot { animation: none; opacity: .3; }
 }
+
+/* ---------------------------------------------------------------------------
+   Hover highlights — unlayered so they win over the component CSS, and gated to
+   pointer devices so touch never gets a stuck hover state. Covers every screen
+   because these are all global class names.
+--------------------------------------------------------------------------- */
+@media (hover: hover) {
+  /* Primary coral CTAs (lesson/sim footer + splash) */
+  .lr-cta:not(:disabled):hover,
+  .splash-cta .cta-primary:hover {
+    filter: brightness(1.06);
+    transform: translateY(-1px);
+    box-shadow: 0 10px 24px color-mix(in srgb, var(--coral) 42%, transparent);
+  }
+
+  /* Option buttons (lesson exercise, grill, format toggles, sim actions) */
+  .lr-opt:not(:disabled):hover {
+    border-color: color-mix(in srgb, var(--violet) 55%, var(--border));
+    background: color-mix(in srgb, var(--violet) 8%, var(--card));
+    transform: translateY(-1px);
+  }
+
+  /* Back / home round icon buttons */
+  .lr-icon:hover {
+    border-color: color-mix(in srgb, var(--teal) 45%, var(--border));
+    background: color-mix(in srgb, var(--teal) 12%, var(--card));
+  }
+
+  /* Context chips */
+  .ts-chip:not(.on):not(.distractor):hover {
+    border-color: color-mix(in srgb, var(--teal) 50%, var(--border));
+    background: color-mix(in srgb, var(--teal) 9%, var(--card));
+  }
+  .ts-chip.on:hover { filter: brightness(1.05); }
+  .ts-chip.distractor:hover {
+    border-color: color-mix(in srgb, var(--coral) 60%, var(--border));
+    background: color-mix(in srgb, var(--coral) 9%, var(--card));
+  }
+
+  /* Bottom tab bar */
+  .tab:hover { color: var(--foreground); }
+
+  /* Resume / continue card */
+  .resume-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px color-mix(in srgb, var(--coral) 22%, transparent);
+  }
+
+  /* Theme toggle */
+  .theme-toggle:hover { border-color: color-mix(in srgb, var(--teal) 45%, var(--border)); }
+
+  /* Splash "Sign in" link */
+  .signlink b:hover { text-decoration: underline; }
+
+  /* Tappable path nodes (unlocked lessons + taste sim): ring, no transform so
+     node positioning is never disturbed. */
+  a.pn:hover { box-shadow: 0 0 0 4px color-mix(in srgb, var(--teal) 32%, transparent); }
+
+  /* Onboarding — primary/nav buttons + selectable tiles */
+  .ob-btn:not(:disabled):hover,
+  .ob-cta:not(:disabled):hover {
+    filter: brightness(1.06);
+    transform: translateY(-1px);
+  }
+  .ob-skip:hover { color: var(--foreground); }
+  .prof:not(.sel):not(.lock):hover,
+  .s:not(.sel):not(.lock):hover {
+    border-color: color-mix(in srgb, var(--teal) 50%, var(--border));
+    background: color-mix(in srgb, var(--teal) 8%, var(--card));
+  }
+  .avatar:not(.sel):hover {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--teal) 40%, transparent);
+  }
+}
