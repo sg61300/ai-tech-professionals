@@ -1,10 +1,14 @@
+"use client";
+
 /**
  * LessonPath — the vertical winding path with electric-AI arcs and arc-reactor
- * nodes (ADR-015/017). Presentational + data-driven: Learn home feeds it live
- * lesson_progress; the onboarding L2/L3 "coming soon" preview feeds it the L1
- * layout with `greyed`. Ported faithfully from Design/learn-home-prototype.html.
+ * nodes (ADR-015/017). Data-driven: Learn home feeds it live lesson_progress;
+ * the onboarding L2/L3 "coming soon" preview feeds it the L1 layout with
+ * `greyed`. Ported from Design/learn-home-prototype.html, including the
+ * scroll-focus node zoom (`--f`).
  */
 
+import { useEffect, useRef } from "react";
 import Link from "next/link";
 
 export type PathNodeKind = "done" | "dsim" | "cur" | "next" | "sim" | "lock";
@@ -44,8 +48,49 @@ export type PathData = {
 };
 
 export function LessonPath({ data, greyed = false }: { data: PathData; greyed?: boolean }) {
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  // Scroll-focus zoom: nodes near the vertical centre of the scroll viewport
+  // grow (--f), the rest shrink slightly — the prototype's arc-reactor focus.
+  useEffect(() => {
+    if (greyed) return;
+    const root = rootRef.current;
+    if (!root) return;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+
+    // Nearest scrollable ancestor (the .lh-content), else the window.
+    let sc: HTMLElement | null = root.parentElement;
+    while (sc && sc.scrollHeight <= sc.clientHeight + 1) sc = sc.parentElement;
+
+    const focusables = () =>
+      Array.from(root.querySelectorAll<HTMLElement>(".pn, .vlab, .udiv"));
+
+    const update = () => {
+      const vh = sc ? sc.clientHeight : window.innerHeight;
+      const top = sc ? sc.getBoundingClientRect().top : 0;
+      const centre = top + vh / 2;
+      for (const el of focusables()) {
+        const r = el.getBoundingClientRect();
+        const c = r.top + r.height / 2;
+        const dist = Math.abs(c - centre);
+        // Up to ~1.28 dead-centre, down to ~0.8 far away — a pronounced focus.
+        const f = Math.max(0.8, Math.min(1.28, 1.32 - dist / (vh * 0.62)));
+        el.style.setProperty("--f", f.toFixed(3));
+      }
+    };
+
+    update();
+    const target: HTMLElement | Window = sc ?? window;
+    target.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update);
+    return () => {
+      target.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+  }, [data, greyed]);
+
   return (
-    <div className={`lesson-path${greyed ? " greyed" : ""}`} aria-hidden={greyed || undefined}>
+    <div ref={rootRef} className={`lesson-path${greyed ? " greyed" : ""}`} aria-hidden={greyed || undefined}>
       <div className="vtrail">
         <svg viewBox="0 0 240 920" preserveAspectRatio="none" aria-hidden="true">
           <path d={data.done} fill="none" stroke="#22C55E" strokeWidth={6} strokeLinecap="round" />
@@ -100,7 +145,7 @@ export function LessonPath({ data, greyed = false }: { data: PathData; greyed?: 
 
 /**
  * Representative Level-1 path layout (from the mockup). Used for the greyed
- * onboarding preview now; Learn home will build its own PathData from live rows.
+ * onboarding preview; Learn home builds its own PathData from live rows.
  */
 export const L1_PREVIEW_PATH: PathData = {
   done: "M60,40 C60,80 150,80 150,120 C150,162 185,162 185,205 C185,247 120,247 120,290 C120,332 60,332 60,375 C60,417 95,417 95,460 C95,502 150,502 150,545",

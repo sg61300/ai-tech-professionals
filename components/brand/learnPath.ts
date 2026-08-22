@@ -38,6 +38,33 @@ function curve(points: { x: number; y: number }[]): string {
   return d;
 }
 
+/**
+ * Jagged "electric arc" polyline along the route (matches the confirmed
+ * prototype's `.parc`). Zig-zags perpendicular to each segment so the animated
+ * glow reads as a lightning bolt rather than a smooth line.
+ */
+function jaggedArc(points: { x: number; y: number }[]): string {
+  if (points.length < 2) return "";
+  const pts: { x: number; y: number }[] = [];
+  for (let i = 0; i < points.length - 1; i++) {
+    const a = points[i];
+    const b = points[i + 1];
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const len = Math.hypot(dx, dy) || 1;
+    const px = -dy / len; // unit perpendicular
+    const py = dx / len;
+    const steps = Math.max(4, Math.round(len / 16));
+    for (let k = 0; k < steps; k++) {
+      const t = k / steps;
+      const amp = (k % 2 === 0 ? 1 : -1) * 15;
+      pts.push({ x: a.x + dx * t + px * amp, y: a.y + dy * t + py * amp });
+    }
+  }
+  pts.push(points[points.length - 1]);
+  return "M" + pts.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" L");
+}
+
 export function buildLearnPath(spine: SpineNode[], states: Record<string, NodeState>): PathData {
   const n = spine.length;
   const top = (i: number) => 5 + (i * 90) / Math.max(1, n - 1);
@@ -53,6 +80,8 @@ export function buildLearnPath(spine: SpineNode[], states: Record<string, NodeSt
 
   const done = curve(centers.slice(0, frontier + 1));
   const base = curve(centers.slice(frontier));
+  // Electric arc runs jagged along the whole route so the animated glow reads.
+  const arc = jaggedArc(centers);
 
   const nodes: PathNode[] = spine.map((s, i) => {
     const state = states[s.id];

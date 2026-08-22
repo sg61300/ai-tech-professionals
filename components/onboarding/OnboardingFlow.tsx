@@ -146,6 +146,24 @@ export function OnboardingFlow({
     }
   }
 
+  // Skip on the final step: complete with sensible defaults (keep any role level
+  // already tapped, else Entry) + Level 1, then go straight to Learn. No dead ends.
+  async function skipLevel() {
+    setStep("building");
+    const ok = await persist({
+      seniority: (seniority ?? "entry") as never,
+      ai_proficiency: "l1",
+      timezone,
+      onboarding_complete: true,
+    });
+    await new Promise((r) => setTimeout(r, 1500));
+    if (ok) {
+      window.location.assign("/learn");
+    } else {
+      setStep("level");
+    }
+  }
+
   // ---- Screens -------------------------------------------------------------
   if (step === "intro") {
     return (
@@ -309,7 +327,9 @@ export function OnboardingFlow({
             ←
           </button>
           <Dots index={2} />
-          <span className="ob-navspacer" />
+          <button className="ob-skip" onClick={skipLevel} disabled={busy}>
+            Skip
+          </button>
         </div>
         <Coach>
           Last one! This sets your <b>starting path</b>, no wrong answers.

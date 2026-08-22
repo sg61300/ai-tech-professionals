@@ -88,8 +88,15 @@ export function LessonRunner({
   // grill needs a choice; on the last content step Continue triggers finish().
   const continueLabel =
     phase === "read" ? "Start the exercise" : phase === "grill" ? "Finish lesson" : "Continue";
+  // Grill requires the correct branch to finish; a wrong pick shows its retort
+  // (why it's off) and lets the learner retry. Correct = the marked branch, else
+  // the first (authoring convention).
+  const grillCorrect = lesson.grillBeat
+    ? Math.max(0, lesson.grillBeat.branches.findIndex((b) => b.correct))
+    : 0;
+  const grillSolved = grillPicked === grillCorrect;
   const canContinue =
-    phase === "read" ? true : phase === "exercise" ? picked !== null : grillPicked !== null;
+    phase === "read" ? true : phase === "exercise" ? picked !== null : grillSolved;
 
   return (
     <div className="lr">
@@ -184,16 +191,26 @@ export function LessonRunner({
               {lesson.grillBeat.branches.map((br, i) => (
                 <button
                   key={i}
-                  className={`lr-opt ${grillPicked === i ? "chosen" : grillPicked !== null ? "dim" : ""}`}
-                  disabled={grillPicked !== null}
+                  className={`lr-opt ${
+                    grillSolved && i === grillCorrect
+                      ? "right"
+                      : grillPicked === i && i !== grillCorrect
+                        ? "wrong"
+                        : ""
+                  }`}
+                  disabled={grillSolved}
                   onClick={() => setGrillPicked(i)}
                 >
                   {br.choice}
+                  {grillSolved && i === grillCorrect && <span className="lr-tick">✓</span>}
                 </button>
               ))}
             </div>
             {grillPicked !== null && (
-              <div className="lr-retort">{lesson.grillBeat.branches[grillPicked].retort}</div>
+              <div className={`lr-retort${grillSolved ? "" : " bad"}`}>
+                {!grillSolved && <b>Not quite. </b>}
+                {lesson.grillBeat.branches[grillPicked].retort}
+              </div>
             )}
           </section>
         )}

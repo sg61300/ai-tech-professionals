@@ -328,6 +328,11 @@
   .ob-screen.focusing { overflow: hidden; }
   .spotlight { position: absolute; inset: 0; z-index: 3; background: color-mix(in srgb, var(--background) 58%, transparent); backdrop-filter: blur(1.5px); opacity: 0; transition: opacity .45s ease; pointer-events: none; }
   .ob-screen.focusing .spotlight { opacity: 1; }
+  /* Chrome (nav/skip, coach, heading, hint) stays crisp above the focus wash. */
+  .ob-screen.focusing .ob-nav,
+  .ob-screen.focusing .ob-coach,
+  .ob-screen.focusing h2,
+  .ob-screen.focusing .hint { position: relative; z-index: 4; }
   .frow { transition: transform .45s cubic-bezier(.2,.8,.2,1), opacity .45s ease, filter .45s ease; transform-origin: center top; }
   .frow.dim { opacity: .32; transform: scale(.92); filter: blur(.6px); }
   .frow.active { position: relative; z-index: 4; transform: scale(1.05); }
@@ -375,8 +380,9 @@
    Ported from Design/learn-home-prototype.html.
    =========================================================================== */
 @layer components {
-  .lh { position: relative; z-index: 1; display: flex; flex-direction: column; flex: 1; min-height: 100dvh; }
-  .topbar { position: sticky; top: 0; z-index: 4; padding: 10px 20px 10px; flex: none; border-bottom: 1px solid var(--border); background: color-mix(in srgb, var(--background) 82%, transparent); backdrop-filter: blur(6px); }
+  .lh { position: relative; z-index: 1; display: flex; flex-direction: column; height: 100dvh; }
+  /* right padding clears the global theme toggle pinned to the surface corner */
+  .topbar { position: sticky; top: 0; z-index: 4; padding: 12px 64px 10px 20px; flex: none; border-bottom: 1px solid var(--border); background: color-mix(in srgb, var(--background) 82%, transparent); backdrop-filter: blur(6px); }
   .topbar-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
   .flame { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 700; color: var(--amber); background: var(--amber-tint); padding: 4px 9px; border-radius: 999px; font-variant-numeric: tabular-nums; }
   .prog { height: 8px; border-radius: 999px; background: var(--teal-tint); overflow: hidden; flex: 1; }
@@ -390,7 +396,8 @@
   .greetbar .bubble { font-size: 13px; line-height: 1.3; color: var(--foreground); }
   .greetbar .bubble b { color: var(--coral-deep); }
 
-  .lh-content { position: relative; z-index: 1; flex: 1; overflow-y: auto; overflow-x: hidden; padding: 8px 20px 24px; }
+  .lh-content { position: relative; z-index: 1; flex: 1; overflow-y: auto; overflow-x: hidden; padding: 8px 20px 24px; scrollbar-width: none; scroll-behavior: smooth; }
+  .lh-content::-webkit-scrollbar { display: none; }
   .prow { display: flex; align-items: baseline; justify-content: space-between; margin: 6px 0 2px; }
   .plab { font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--muted-foreground); }
   .punit { font-size: 11px; font-weight: 600; color: var(--teal); }
@@ -422,14 +429,15 @@
   .lesson-path .vtrail { position: relative; height: 920px; margin-top: 10px; }
   .lesson-path .vtrail svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
   .lesson-path .base { stroke: var(--border); stroke-width: 6; fill: none; stroke-linecap: round; stroke-dasharray: 1 13; }
-  .lesson-path .parc { fill: none; stroke: #8b5cf6; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; opacity: .5; filter: drop-shadow(0 0 3px rgba(139,92,246,.8)); }
+  .lesson-path .parc { fill: none; stroke: #8b5cf6; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; opacity: .72; filter: drop-shadow(0 0 4px rgba(139,92,246,.9)); }
   .lesson-path .parc.hot { stroke: #c4b5fd; stroke-width: 2; opacity: 0; filter: drop-shadow(0 0 4px #a78bfa) drop-shadow(0 0 10px rgba(124,58,237,.95)); }
 
   .lesson-path .pn {
     position: absolute; width: 42px; height: 42px; border-radius: 50%;
-    transform: translate(-50%, -50%); z-index: 2; display: grid; place-items: center;
+    transform: translate(-50%, -50%) scale(var(--f, 1)); z-index: 2; display: grid; place-items: center;
     font-size: 15px; font-weight: 800; color: #fff;
     box-shadow: 0 4px 10px rgba(13,40,36,.22), inset 0 1px 0 rgba(255,255,255,.32);
+    transition: transform .18s ease, opacity .18s ease; will-change: transform;
   }
   .lesson-path .pn.done { background: linear-gradient(150deg, #2fd070, #15a34a); }
   .lesson-path .pn.dsim { background: linear-gradient(150deg, #22c9bd, #0d6d70); font-size: 18px; }
@@ -439,10 +447,10 @@
   .lesson-path .pn.sim { width: 58px; height: 58px; background: linear-gradient(150deg, #2ee6d6, #0c6d70); color: #fff; font-size: 22px; box-shadow: 0 0 0 3px rgba(139,92,246,.32), 0 0 24px 4px rgba(139,92,246,.75), inset 0 1px 0 rgba(255,255,255,.35); }
   .lesson-path .simring { position: absolute; width: 58px; height: 58px; border-radius: 50%; transform: translate(-50%, -50%); border: 2px solid rgba(139,92,246,.6); z-index: 1; }
 
-  .lesson-path .vlab { position: absolute; transform: translateY(-50%); font-size: 11.5px; font-weight: 600; color: var(--muted-foreground); z-index: 2; }
+  .lesson-path .vlab { position: absolute; transform: translateY(-50%) scale(var(--f, 1)); transform-origin: center; transition: transform .18s ease; font-size: 11.5px; font-weight: 600; color: var(--muted-foreground); z-index: 2; }
   .lesson-path .vlab b { display: block; font-family: var(--font-poppins), sans-serif; font-weight: 600; font-size: 12.5px; color: var(--foreground); }
   .lesson-path .vlab small { font-size: 10px; font-weight: 700; color: var(--violet); letter-spacing: .04em; }
-  .lesson-path .udiv { position: absolute; left: 50%; transform: translate(-50%, -50%); z-index: 3; font-family: var(--font-poppins), sans-serif; font-weight: 600; font-size: 10.5px; letter-spacing: .06em; color: var(--teal); background: var(--background); padding: 2px 12px; border: 1px solid var(--border); border-radius: 999px; white-space: nowrap; }
+  .lesson-path .udiv { position: absolute; left: 50%; transform: translate(-50%, -50%) scale(var(--f, 1)); z-index: 3; font-family: var(--font-poppins), sans-serif; font-weight: 600; font-size: 10.5px; letter-spacing: .06em; color: var(--teal); background: var(--background); padding: 2px 12px; border: 1px solid var(--border); border-radius: 999px; white-space: nowrap; }
 
   @keyframes zappath { 0%,12%{opacity:0} 15%{opacity:1} 21%{opacity:.25} 27%{opacity:1} 35%{opacity:.15} 44%{opacity:0} 100%{opacity:0} }
   @keyframes pnchip { 0%,100%{box-shadow:0 0 0 4px rgba(139,92,246,.32),0 0 16px rgba(139,92,246,.5)} 50%{box-shadow:0 0 0 7px rgba(139,92,246,.2),0 0 30px rgba(139,92,246,.9)} }

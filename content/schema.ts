@@ -42,8 +42,17 @@ export type Exercise = z.infer<typeof ExerciseSchema>;
 // --- Grill-me (scripted decision-maker beat) --------------------------------
 export const GrillBeatSchema = z.object({
   prompt: z.string().min(1),
+  // The learner must pick the `correct` branch to finish; a wrong pick shows its
+  // retort (why it's off) and lets them retry. If no branch is marked, the FIRST
+  // branch is treated as correct (authoring convention).
   branches: z
-    .array(z.object({ choice: z.string().min(1), retort: z.string().min(1) }))
+    .array(
+      z.object({
+        choice: z.string().min(1),
+        retort: z.string().min(1),
+        correct: z.boolean().optional(),
+      }),
+    )
     .min(2),
 });
 export type GrillBeat = z.infer<typeof GrillBeatSchema>;

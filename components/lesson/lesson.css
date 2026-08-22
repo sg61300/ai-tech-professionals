@@ -11,7 +11,8 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 14px 16px 6px;
+  /* right padding clears the global theme toggle pinned to the surface corner */
+  padding: 14px 58px 6px 16px;
 }
 .lr-icon {
   flex: none;
@@ -204,6 +205,10 @@
   background: color-mix(in srgb, var(--violet) 12%, var(--card));
   border: 1px solid color-mix(in srgb, var(--violet) 45%, var(--border));
 }
+.lr-retort.bad {
+  background: color-mix(in srgb, var(--coral) 12%, var(--card));
+  border: 1px solid color-mix(in srgb, var(--coral) 45%, var(--border));
+}
 
 /* Footer CTA */
 .lr-foot {
@@ -241,10 +246,38 @@
   text-align: center;
   gap: 12px;
 }
+.lr-rune-hop {
+  position: relative;
+}
 .lr-rune-hop img {
-  width: 150px;
+  width: 172px;
   height: auto;
-  animation: lr-hop 0.9s cubic-bezier(0.28, 0.84, 0.42, 1) 2;
+  filter: drop-shadow(0 12px 26px rgba(139, 92, 246, 0.42));
+  animation:
+    lr-pop 0.5s cubic-bezier(0.2, 1.4, 0.4, 1) both,
+    lr-float 2.4s ease-in-out 0.5s infinite;
+}
+/* soft celebratory glow pulsing behind the mascot */
+.lr-rune-hop::before {
+  content: "";
+  position: absolute;
+  inset: -10% 5% 15%;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--violet) 45%, transparent), transparent 70%);
+  z-index: -1;
+  animation: lr-glow 2.4s ease-in-out infinite;
+}
+@keyframes lr-pop {
+  0% { opacity: 0; transform: scale(0.6) translateY(22px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes lr-float {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50% { transform: translateY(-13px) rotate(1.5deg); }
+}
+@keyframes lr-glow {
+  0%, 100% { opacity: 0.5; transform: scale(0.95); }
+  50% { opacity: 0.85; transform: scale(1.08); }
 }
 .lr-done-title {
   font-family: var(--font-heading), sans-serif;
