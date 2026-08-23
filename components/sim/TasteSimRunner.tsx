@@ -336,14 +336,6 @@ export function TasteSimRunner({
               {grillPicked !== null && <div className="lr-retort">{sim.grillBeat.branches[grillPicked].retort}</div>}
             </div>
 
-            <div className="ts-actions">
-              <button className="lr-opt" onClick={copyEmail}>
-                {copied ? "Copied ✓" : "📋 Copy email"}
-              </button>
-              <button className="lr-cta" onClick={() => router.push("/learn")}>
-                Done
-              </button>
-            </div>
           </section>
         )}
       </main>
@@ -362,6 +354,16 @@ export function TasteSimRunner({
       {step === "format" && <Foot label="Review your prompt" onClick={() => setStep("review")} />}
       {step === "review" && <Foot label={sim.assembled.cta} onClick={generate} />}
       {step === "result" && <Foot label="See your reward" onClick={finish} />}
+      {step === "celebrate" && (
+        <footer className="lr-foot lr-foot-cel">
+          <button type="button" className="lr-copy" onClick={copyEmail}>
+            {copied ? "Copied ✓" : "📋 Copy email"}
+          </button>
+          <button type="button" className="lr-cta" onClick={() => router.push("/learn")}>
+            Done
+          </button>
+        </footer>
+      )}
     </div>
   );
 }

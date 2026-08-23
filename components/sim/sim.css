@@ -136,6 +136,28 @@
   margin-top: 8px;
   text-align: left;
 }
+
+/* Fixed celebration footer: Copy email (secondary) + Done stacked full-width. */
+.lr-foot-cel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.lr-copy {
+  width: 100%;
+  padding: 13px;
+  border-radius: var(--radius-xl);
+  border: 1.5px solid var(--border);
+  background: var(--card);
+  color: var(--foreground);
+  font-size: 15px;
+  font-weight: 700;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+@media (hover: hover) { .lr-copy:hover { border-color: var(--teal); } }
+.lr-copy:active { transform: scale(0.99); }
 .ts-actions {
   width: 100%;
   max-width: 22rem;
