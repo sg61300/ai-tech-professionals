@@ -4,7 +4,8 @@
 .lr {
   display: flex;
   flex-direction: column;
-  min-height: 100dvh;
+  height: 100dvh; /* fixed to viewport so .lr-body scrolls internally (no page scroll) */
+  overflow: hidden;
 }
 
 .lr-top {
@@ -46,9 +47,12 @@
 
 .lr-body {
   flex: 1;
+  min-height: 0;
   padding: 10px 20px 20px;
   overflow-y: auto;
+  scrollbar-width: none;
 }
+.lr-body::-webkit-scrollbar { display: none; }
 
 .lr-kicker {
   font-size: 12px;

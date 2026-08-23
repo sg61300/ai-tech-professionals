@@ -141,10 +141,18 @@
   max-width: 22rem;
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 10px;
   margin-top: 18px;
 }
 .ts-actions .lr-opt {
+  width: 100%;
   text-align: center;
   padding: 13px;
+}
+/* Done matches Copy email full-width (overrides .lr-done .lr-cta max-width so it
+   doesn't left-align inside the actions block). */
+.ts-actions .lr-cta {
+  width: 100%;
+  max-width: none;
 }
