@@ -27,7 +27,7 @@ export default async function ProfilePage() {
   const { data: profile } = await supabase
     .from("profiles")
     .select(
-      "name, avatar_name, avatar_key, xp, level, streak_count, longest_streak, profession, seniority, ai_proficiency, onboarding_complete",
+      "name, avatar_name, avatar_key, mobile, xp, level, streak_count, longest_streak, profession, seniority, ai_proficiency, onboarding_complete",
     )
     .eq("id", user.id)
     .single();
@@ -66,8 +66,8 @@ export default async function ProfilePage() {
 
   return (
     <div className="lh">
-      <main className="pf-content">
-        {/* Header */}
+      {/* Fixed identity + stats; only the sections below scroll. */}
+      <div className="pf-top">
         <header className="pf-head">
           <div className="pf-av">
             {profile?.avatar_key ? (
@@ -113,7 +113,9 @@ export default async function ProfilePage() {
             <span>Badges</span>
           </div>
         </div>
+      </div>
 
+      <main className="pf-content">
         {/* Badges */}
         {badges.length > 0 && (
           <section className="pf-sec">
@@ -134,8 +136,16 @@ export default async function ProfilePage() {
           <h2 className="pf-sec-h">Your details</h2>
           <dl className="pf-details">
             <div>
+              <dt>Name</dt>
+              <dd>{detail(profile?.name)}</dd>
+            </div>
+            <div>
               <dt>Email</dt>
               <dd>{user.email}</dd>
+            </div>
+            <div>
+              <dt>Mobile</dt>
+              <dd>{detail(profile?.mobile)}</dd>
             </div>
             <div>
               <dt>Organization role</dt>
