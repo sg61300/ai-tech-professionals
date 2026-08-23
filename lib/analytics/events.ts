@@ -18,6 +18,10 @@ export const EVENTS = {
   STREAK_ADVANCED: "streak_advanced",
   LEVEL_UP: "level_up",
   REEL_VIEWED: "reel_viewed",
+  REEL_LIKED: "reel_liked",
+  REEL_SAVED: "reel_saved",
+  REEL_SHARED: "reel_shared",
+  REEL_REPORTED: "reel_reported",
   AI_FALLBACK_USED: "ai_fallback_used", // watch the fallback rate on free-tier quota
 } as const;
 

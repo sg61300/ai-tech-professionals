@@ -1,0 +1,494 @@
+/* System X-Ray sim — Teal & Coral tokens (globals.css). Violet = AI/system
+   moments, teal = HR-owned glow. Full-height inside the .app-surface frame. */
+
+.sx {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
+.sx-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 80px 6px 16px; /* right pad clears the corner theme toggle (12–70px) */
+}
+.sx-icon {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--foreground);
+  font-size: 17px;
+  cursor: pointer;
+}
+.sx-icon:active {
+  transform: scale(0.94);
+}
+.sx-top-title {
+  font-family: var(--font-heading), sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  text-align: center;
+  flex: 1;
+}
+.sx-ghost {
+  border: none;
+  background: transparent;
+  pointer-events: none;
+}
+.sx-home {
+  display: block;
+  margin: 10px auto 0;
+  padding: 6px 14px;
+  background: none;
+  border: none;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.sx-home:active {
+  transform: scale(0.96);
+}
+
+.sx-body {
+  flex: 1;
+  padding: 12px 20px 20px;
+  overflow-y: auto;
+}
+.sx-center {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px 26px;
+  gap: 12px;
+}
+.sx-hero {
+  font-size: 60px;
+}
+.sx-h1 {
+  font-family: var(--font-heading), sans-serif;
+  font-weight: 800;
+  font-size: 25px;
+  line-height: 1.15;
+  margin: 2px 0;
+}
+.sx-copy {
+  color: var(--foreground);
+  line-height: 1.45;
+}
+.sx-muted {
+  color: var(--muted-foreground);
+  font-size: 14px;
+}
+.sx-kicker {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--violet);
+  margin: 6px 0 10px;
+}
+.sx-q {
+  font-family: var(--font-heading), sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  line-height: 1.3;
+  margin: 0 0 14px;
+}
+
+/* CTA */
+.sx-cta {
+  width: 100%;
+  padding: 15px 20px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--teal);
+  color: var(--primary-foreground);
+  font-family: var(--font-heading), sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  cursor: pointer;
+  transition: transform 0.08s;
+}
+.sx-cta:not(:disabled):active {
+  transform: scale(0.98);
+}
+.sx-cta:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.sx-cta.ghost {
+  background: var(--card);
+  color: var(--foreground);
+  border: 1.5px solid var(--border);
+}
+.sx-foot {
+  padding: 12px 20px calc(18px + env(safe-area-inset-bottom));
+}
+.sx-foot-row {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+  padding-top: 6px;
+}
+.sx-link {
+  margin-top: 8px;
+  background: none;
+  border: none;
+  color: var(--teal);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* input */
+.sx-safety {
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--coral) 12%, var(--card));
+  border: 1.5px solid color-mix(in srgb, var(--coral) 45%, var(--border));
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  margin: 10px 0 4px;
+}
+.sx-samples {
+  display: grid;
+  gap: 8px;
+}
+.sx-sample {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--border);
+  background: var(--card);
+  color: var(--foreground);
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+}
+.sx-sample.on {
+  border-color: var(--teal);
+  background: color-mix(in srgb, var(--teal) 10%, var(--card));
+}
+.sx-sample-tick {
+  color: var(--teal);
+  font-weight: 800;
+}
+.sx-soon {
+  margin-top: 12px;
+  padding: 11px 13px;
+  border-radius: var(--radius-md);
+  background: var(--secondary);
+  color: var(--muted-foreground);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+/* flow map */
+.sx-flow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 0 10px;
+}
+.sx-flow-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+.sx-arrow {
+  color: var(--muted-foreground);
+  font-size: 16px;
+  line-height: 1.1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.sx-branch {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--violet);
+  text-transform: uppercase;
+}
+.sx-node {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  max-width: 320px;
+  text-align: left;
+  padding: 13px 15px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--border);
+  background: var(--card);
+  color: var(--foreground);
+  cursor: pointer;
+  animation: sx-pop 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes sx-pop {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+}
+.sx-node:active {
+  transform: scale(0.98);
+}
+.sx-node.decision {
+  border-style: dashed;
+}
+.sx-node.glow {
+  border-color: var(--teal);
+  background: color-mix(in srgb, var(--teal) 12%, var(--card));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--teal) 18%, transparent);
+}
+.sx-node-glyph {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--secondary);
+  font-size: 13px;
+}
+.sx-node.glow .sx-node-glyph {
+  background: color-mix(in srgb, var(--teal) 22%, var(--card));
+}
+.sx-node-label {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+.sx-node-tag {
+  flex: none;
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--teal);
+  background: color-mix(in srgb, var(--teal) 16%, transparent);
+  padding: 2px 7px;
+  border-radius: 999px;
+}
+
+.sx-nodecard {
+  margin-top: 14px;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  background: var(--card);
+  border: 1.5px solid color-mix(in srgb, var(--teal) 35%, var(--border));
+  animation: sx-pop 0.25s ease both;
+}
+.sx-nodecard-h {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+.sx-nodecard p {
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--foreground);
+}
+.sx-hrbadge {
+  align-self: flex-start;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--teal);
+  background: color-mix(in srgb, var(--teal) 15%, transparent);
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+.sx-beat {
+  margin-top: 8px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--amber) 14%, var(--card));
+  border: 1px solid color-mix(in srgb, var(--amber) 40%, var(--border));
+  font-size: 13px !important;
+}
+
+/* risks */
+.sx-risks {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+}
+.sx-risk {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 13px 15px;
+  border-radius: var(--radius-md);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--coral);
+}
+.sx-risk-h {
+  font-weight: 700;
+  font-size: 14px;
+}
+.sx-risk-why {
+  font-size: 13px;
+  color: var(--muted-foreground);
+  line-height: 1.4;
+}
+
+.sx-checkres {
+  margin-top: 14px;
+  padding: 13px 15px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  line-height: 1.45;
+  border: 1px solid var(--border);
+}
+.sx-checkres.good {
+  background: color-mix(in srgb, var(--success) 12%, var(--card));
+  border-color: color-mix(in srgb, var(--success) 40%, var(--border));
+}
+.sx-checkres.bad {
+  background: color-mix(in srgb, var(--amber) 14%, var(--card));
+  border-color: color-mix(in srgb, var(--amber) 40%, var(--border));
+}
+
+/* requirements */
+.sx-reqbox {
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--violet) 8%, var(--card));
+  border: 1px solid color-mix(in srgb, var(--violet) 28%, var(--border));
+  margin: 12px 0;
+}
+.sx-reqbox ul {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 5px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+.sx-banner {
+  padding: 11px 13px;
+  border-radius: var(--radius-md);
+  background: var(--secondary);
+  color: var(--muted-foreground);
+  font-size: 12.5px;
+  line-height: 1.4;
+  font-style: italic;
+}
+.sx-copy-btn {
+  width: 100%;
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--teal);
+  background: color-mix(in srgb, var(--teal) 10%, var(--card));
+  color: var(--teal);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* done */
+.sx-done {
+  gap: 14px;
+}
+.sx-rune-hop {
+  width: 130px;
+  height: 130px;
+}
+.sx-rune-hop img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  animation: sx-hop 0.9s cubic-bezier(0.3, 1.3, 0.5, 1) infinite alternate;
+}
+@keyframes sx-hop {
+  to {
+    transform: translateY(-13px) rotate(2deg);
+  }
+}
+.sx-rewards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+.sx-reward {
+  padding: 8px 13px;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 13px;
+}
+.sx-reward.xp {
+  background: color-mix(in srgb, var(--teal) 16%, var(--card));
+  color: var(--teal);
+}
+.sx-reward.badge,
+.sx-reward.lvl {
+  background: color-mix(in srgb, var(--violet) 16%, var(--card));
+  color: var(--violet);
+}
+.sx-reward.streak {
+  background: color-mix(in srgb, var(--amber) 20%, var(--card));
+  color: color-mix(in srgb, var(--amber) 60%, var(--foreground));
+}
+.sx-grill {
+  width: 100%;
+  text-align: left;
+  margin-top: 8px;
+}
+.sx-grill-opts {
+  display: grid;
+  gap: 8px;
+}
+.sx-grill-opt {
+  text-align: left;
+  padding: 13px 14px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--border);
+  background: var(--card);
+  color: var(--foreground);
+  font-size: 14px;
+  cursor: pointer;
+}
+.sx-grill-opt.right {
+  border-color: var(--success);
+  background: color-mix(in srgb, var(--success) 12%, var(--card));
+}
+.sx-grill-opt.wrong {
+  border-color: var(--error);
+  background: color-mix(in srgb, var(--error) 10%, var(--card));
+}
+.sx-retort {
+  margin-top: 10px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  line-height: 1.45;
+  background: color-mix(in srgb, var(--success) 10%, var(--card));
+  border: 1px solid color-mix(in srgb, var(--success) 35%, var(--border));
+}
+.sx-retort.bad {
+  background: color-mix(in srgb, var(--amber) 14%, var(--card));
+  border-color: color-mix(in srgb, var(--amber) 40%, var(--border));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sx-node,
+  .sx-nodecard,
+  .sx-rune-hop img {
+    animation: none;
+  }
+}

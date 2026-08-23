@@ -218,28 +218,28 @@
 
   /* Global light/dark toggle — a sliding sun/moon pill pinned to the app surface. */
   .theme-toggle {
-    position: absolute; top: 12px; right: 12px; z-index: 60;
+    position: absolute; top: 14px; right: 12px; z-index: 60;
     padding: 0; border: 0; background: none; cursor: pointer; line-height: 0;
   }
   .tt-track {
     position: relative; display: inline-flex; align-items: center; justify-content: space-between;
-    width: 58px; height: 30px; padding: 0 7px; border-radius: 999px;
+    width: 44px; height: 24px; padding: 0 5px; border-radius: 999px;
     background: color-mix(in srgb, var(--card) 82%, transparent); backdrop-filter: blur(6px);
     border: 1px solid var(--border); box-shadow: var(--shadow-card);
   }
-  .tt-ic { font-size: 12px; line-height: 1; transition: opacity .2s, filter .2s; }
+  .tt-ic { font-size: 10px; line-height: 1; transition: opacity .2s, filter .2s; }
   .theme-toggle:not([data-dark="true"]) .tt-ic.moon { opacity: .4; filter: grayscale(.5); }
   .theme-toggle:not([data-dark="true"]) .tt-ic.sun { opacity: 1; }
   .theme-toggle[data-dark="true"] .tt-ic.sun { opacity: .4; filter: grayscale(.5); }
   .theme-toggle[data-dark="true"] .tt-ic.moon { opacity: 1; }
   .tt-knob {
-    position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%;
+    position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%;
     background: linear-gradient(150deg, var(--teal), var(--violet));
     box-shadow: 0 2px 6px rgba(0, 0, 0, .28), inset 0 1px 0 rgba(255, 255, 255, .35);
     transition: transform .28s cubic-bezier(.2, .8, .2, 1);
   }
-  .theme-toggle[data-dark="true"] .tt-knob { transform: translateX(28px); }
-  .theme-toggle:active .tt-knob { width: 27px; }
+  .theme-toggle[data-dark="true"] .tt-knob { transform: translateX(20px); }
+  .theme-toggle:active .tt-knob { width: 21px; }
   @media (prefers-reduced-motion: reduce) { .tt-knob { transition: none; } }
 
   .ob-screen {
@@ -382,18 +382,24 @@
 @layer components {
   .lh { position: relative; z-index: 1; display: flex; flex-direction: column; height: 100dvh; }
   /* right padding clears the global theme toggle pinned to the surface corner */
-  .topbar { position: sticky; top: 0; z-index: 4; padding: 12px 64px 10px 20px; flex: none; border-bottom: 1px solid var(--border); background: color-mix(in srgb, var(--background) 82%, transparent); backdrop-filter: blur(6px); }
+  .topbar { position: sticky; top: 0; z-index: 4; padding: 12px 82px 10px 20px; flex: none; border-bottom: 1px solid var(--border); background: color-mix(in srgb, var(--background) 82%, transparent); backdrop-filter: blur(6px); }
   .topbar-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-  .flame { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 700; color: var(--amber); background: var(--amber-tint); padding: 4px 9px; border-radius: 999px; font-variant-numeric: tabular-nums; }
+  .flame { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 700; color: var(--amber); background: var(--amber-tint); padding: 4px 9px; border-radius: 999px; font-variant-numeric: tabular-nums; text-decoration: none; cursor: pointer; transition: filter .15s, transform .12s; }
+  @media (hover: hover) { a.flame:hover { filter: brightness(1.04); transform: translateY(-1px); } }
   .prog { height: 8px; border-radius: 999px; background: var(--teal-tint); overflow: hidden; flex: 1; }
-  .prog > i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--teal), #2dd4bf); transition: width .4s ease; }
+  .prog > i { display: block; height: 100%; min-width: 8px; border-radius: 999px; background: linear-gradient(90deg, var(--teal), #2dd4bf); transition: width .7s cubic-bezier(.22,1,.36,1); }
+  /* Animate the fill up from 0 on load so progress visibly moves. */
+  @starting-style { .prog > i { width: 0 !important; } }
   .xp { font-size: 12px; font-weight: 600; color: var(--muted-foreground); font-variant-numeric: tabular-nums; white-space: nowrap; }
 
   .greetbar { position: relative; z-index: 2; flex: none; padding: 12px 20px 8px; display: flex; }
   .greetbar .mascot { display: flex; gap: 11px; align-items: flex-end; }
   .greetbar .rune { width: 44px; height: 54px; flex: none; background: var(--card); border-radius: 13px; overflow: hidden; display: grid; place-items: center; box-shadow: 0 5px 12px rgba(139,92,246,.2); }
   .greetbar .rune img { width: 100%; height: 100%; object-fit: contain; object-position: center bottom; }
-  .greetbar .bubble { font-size: 13px; line-height: 1.3; color: var(--foreground); }
+  .greetbar .bubble { font-size: 13px; line-height: 1.35; color: var(--foreground); }
+  .greetbar .gline { display: block; }
+  .greetbar .gline b { color: var(--coral); }
+  .greetbar .gsub { display: block; margin-top: 3px; color: var(--muted-foreground); }
   .greetbar .bubble b { color: var(--coral-deep); }
 
   .lh-content { position: relative; z-index: 1; flex: 1; overflow-y: auto; overflow-x: hidden; padding: 8px 20px 24px; scrollbar-width: none; scroll-behavior: smooth; }
@@ -429,8 +435,13 @@
   .lesson-path .vtrail { position: relative; height: 920px; margin-top: 10px; }
   .lesson-path .vtrail svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
   .lesson-path .base { stroke: var(--border); stroke-width: 6; fill: none; stroke-linecap: round; stroke-dasharray: 1 13; }
-  .lesson-path .parc { fill: none; stroke: #8b5cf6; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; opacity: .72; filter: drop-shadow(0 0 4px rgba(139,92,246,.9)); }
-  .lesson-path .parc.hot { stroke: #c4b5fd; stroke-width: 2; opacity: 0; filter: drop-shadow(0 0 4px #a78bfa) drop-shadow(0 0 10px rgba(124,58,237,.95)); }
+  /* Electric arc. LIGHT mode: darker, saturated violet + blue so the bolt reads
+     on the white background. DARK mode: the glowing AI-Hub bloom (matched to
+     Design/simulation-flows.html). */
+  .lesson-path .parc { fill: none; stroke: #6d28d9; stroke-width: 2.8; stroke-linecap: round; stroke-linejoin: round; opacity: .92; filter: drop-shadow(0 0 2px rgba(109,40,217,.45)); }
+  .lesson-path .parc.hot { stroke: #1d4ed8; stroke-width: 2; opacity: 0; filter: drop-shadow(0 0 3px rgba(29,78,216,.55)); }
+  .dark .lesson-path .parc { stroke: #c4b5fd; stroke-width: 2.6; opacity: .6; filter: drop-shadow(0 0 3px #a78bfa) drop-shadow(0 0 8px rgba(124,58,237,.9)); }
+  .dark .lesson-path .parc.hot { stroke: #7dd3fc; filter: drop-shadow(0 0 3px #38bdf8) drop-shadow(0 0 9px rgba(56,189,248,.95)); }
 
   .lesson-path .pn {
     position: absolute; width: 42px; height: 42px; border-radius: 50%;
@@ -451,6 +462,15 @@
   .lesson-path .vlab b { display: block; font-family: var(--font-poppins), sans-serif; font-weight: 600; font-size: 12.5px; color: var(--foreground); }
   .lesson-path .vlab small { font-size: 10px; font-weight: 700; color: var(--violet); letter-spacing: .04em; }
   .lesson-path .udiv { position: absolute; left: 50%; transform: translate(-50%, -50%) scale(var(--f, 1)); z-index: 3; font-family: var(--font-poppins), sans-serif; font-weight: 600; font-size: 10.5px; letter-spacing: .06em; color: var(--teal); background: var(--background); padding: 2px 12px; border: 1px solid var(--border); border-radius: 999px; white-space: nowrap; }
+
+  /* Small resume card anchored beside the CURRENT node (kept with the top hero). */
+  /* Scales with scroll-focus (--f), dampened, growing AWAY from the node
+     (origin on the node-facing edge) so it enlarges without overlapping it. */
+  .lesson-path .rcard { position: absolute; transform: translateY(-50%) scale(calc(1 + (var(--f, 1) - 1) * 0.4)); transform-origin: left center; transition: transform .18s ease; z-index: 4; display: flex; flex-direction: column; gap: 1px; padding: 6px 9px; border-radius: 10px; background: color-mix(in srgb, var(--coral) 8%, var(--card)); border: 1px solid color-mix(in srgb, var(--coral) 32%, var(--border)); box-shadow: var(--shadow-card); text-decoration: none; }
+  .lesson-path .rcard.right { text-align: right; transform-origin: right center; }
+  .lesson-path .rcard-kick { font-size: 8px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--coral); }
+  .lesson-path .rcard-title { font-family: var(--font-poppins), sans-serif; font-weight: 700; font-size: 10px; line-height: 1.15; color: var(--foreground); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .lesson-path .rcard-go { font-size: 9.5px; font-weight: 700; color: var(--teal); margin-top: 1px; }
 
   @keyframes zappath { 0%,12%{opacity:0} 15%{opacity:1} 21%{opacity:.25} 27%{opacity:1} 35%{opacity:.15} 44%{opacity:0} 100%{opacity:0} }
   @keyframes pnchip { 0%,100%{box-shadow:0 0 0 4px rgba(139,92,246,.32),0 0 16px rgba(139,92,246,.5)} 50%{box-shadow:0 0 0 7px rgba(139,92,246,.2),0 0 30px rgba(139,92,246,.9)} }

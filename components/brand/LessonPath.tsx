@@ -34,6 +34,16 @@ export type PathNode = {
     width: string;
     align?: "left" | "right";
   };
+  /** Small resume card anchored beside the current node. */
+  card?: {
+    kick: string;
+    num: string;
+    title: string;
+    left: string;
+    top: string;
+    width: string;
+    align: "left" | "right";
+  };
 };
 
 export type PathData = {
@@ -63,7 +73,7 @@ export function LessonPath({ data, greyed = false }: { data: PathData; greyed?: 
     while (sc && sc.scrollHeight <= sc.clientHeight + 1) sc = sc.parentElement;
 
     const focusables = () =>
-      Array.from(root.querySelectorAll<HTMLElement>(".pn, .vlab, .udiv"));
+      Array.from(root.querySelectorAll<HTMLElement>(".pn, .vlab, .udiv, .rcard"));
 
     const update = () => {
       const vh = sc ? sc.clientHeight : window.innerHeight;
@@ -73,8 +83,9 @@ export function LessonPath({ data, greyed = false }: { data: PathData; greyed?: 
         const r = el.getBoundingClientRect();
         const c = r.top + r.height / 2;
         const dist = Math.abs(c - centre);
-        // Up to ~1.28 dead-centre, down to ~0.8 far away — a pronounced focus.
-        const f = Math.max(0.8, Math.min(1.28, 1.32 - dist / (vh * 0.62)));
+        // Up to ~1.5 dead-centre, down to ~0.7 far away — a strongly pronounced
+        // focus so the magnify clearly reads as you scroll.
+        const f = Math.max(0.7, Math.min(1.5, 1.55 - dist / (vh * 0.45)));
         el.style.setProperty("--f", f.toFixed(3));
       }
     };
@@ -135,6 +146,19 @@ export function LessonPath({ data, greyed = false }: { data: PathData; greyed?: 
                 {n.vlab.bold ? <b>{n.vlab.bold}</b> : n.vlab.text}
                 {n.vlab.small && <small>{n.vlab.small}</small>}
               </span>
+            )}
+            {n.card && n.href && !greyed && (
+              <Link
+                href={n.href}
+                className={`rcard ${n.card.align}`}
+                style={{ left: n.card.left, top: n.card.top, width: n.card.width }}
+              >
+                <span className="rcard-kick">{n.card.kick}</span>
+                <span className="rcard-title">
+                  Lesson {n.card.num} · {n.card.title}
+                </span>
+                <span className="rcard-go">Begin →</span>
+              </Link>
             )}
           </span>
         ))}

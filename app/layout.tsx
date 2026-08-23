@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Poppins, Inter } from "next/font/google";
 import { ServiceWorkerRegister } from "@/components/pwa/ServiceWorkerRegister";
 import { PostHogProvider } from "@/components/analytics/PostHogProvider";
+import { SessionTracker } from "@/components/analytics/SessionTracker";
 import { ThemeToggle } from "@/components/brand/ThemeToggle";
 import "./globals.css";
 
@@ -55,6 +56,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <PostHogProvider>{children}</PostHogProvider>
         </div>
         <ServiceWorkerRegister />
+        <SessionTracker />
       </body>
     </html>
   );

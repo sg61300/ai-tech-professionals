@@ -69,14 +69,35 @@ export const LessonSchema = z.object({
 export type Lesson = z.infer<typeof LessonSchema>;
 
 // --- Rapid-fire -------------------------------------------------------------
-export const RapidFireItemSchema = z.object({
-  id: z.string().min(1),
-  prompt: z.string().min(1),
-  options: z.array(z.string().min(1)).min(2),
-  correct: z.number().int().nonnegative(),
-  grillStyle: z.string().optional(),
-});
+export const RapidFireItemSchema = z
+  .object({
+    id: z.string().min(1),
+    /** mcq | truefalse | pickbetter — drives how the runner renders options. */
+    kind: z.enum(["mcq", "truefalse", "pickbetter"]).default("mcq"),
+    prompt: z.string().min(1),
+    options: z.array(z.string().min(1)).min(2),
+    correct: z.number().int().nonnegative(), // index into options
+    /** Mandatory 1-line teach shown after answering (PRD/11: learning > scoring). */
+    teach: z.string().min(1),
+    grillStyle: z.string().optional(),
+  })
+  .refine((q) => q.correct < q.options.length, {
+    message: "rapid-fire correct index out of range",
+    path: ["correct"],
+  });
 export type RapidFireItem = z.infer<typeof RapidFireItemSchema>;
+
+export const RapidFireSetSchema = z.object({
+  id: z.string().min(1),
+  title: z.string().min(1),
+  intro: z.string().min(1),
+  /** Correct answers needed to pass (default 6/8). */
+  passThreshold: z.number().int().positive().default(6),
+  /** The sim node this round unlocks on pass (spine id), if any. */
+  unlocksSimId: z.string().optional(),
+  items: z.array(RapidFireItemSchema).min(1),
+});
+export type RapidFireSet = z.infer<typeof RapidFireSetSchema>;
 
 // --- Simulations ------------------------------------------------------------
 export const ScriptedRubricSchema = z.object({
@@ -186,8 +207,164 @@ export const TasteSimSchema = z.object({
 });
 export type TasteSim = z.infer<typeof TasteSimSchema>;
 
+// --- Email sim (PRD/09, "Inbox Tamer") --------------------------------------
+// The first FULL sim (north-star). A visual rule-builder (IF condition THEN
+// bucket) that compiles into an AI prompt; deterministic rule-based sort is the
+// source of truth (correct by construction + never breaks), with a live-AI
+// reason pass layered on top. Bespoke shape like TasteSim.
+export const EMAIL_BUCKETS = ["now", "today", "week", "later"] as const;
+export const EmailBucketKey = z.enum(EMAIL_BUCKETS);
+
+const EmailBucketSchema = z.object({
+  key: EmailBucketKey,
+  label: z.string().min(1),
+  emoji: z.string().min(1),
+  blurb: z.string().min(1),
+});
+const InboxEmailSchema = z.object({
+  id: z.string().min(1),
+  from: z.string().min(1),
+  fromType: z.string().min(1), // e.g. "employee" | "leadership" | "vendor"
+  subject: z.string().min(1),
+  /** Tags a condition can match on (e.g. "exit", "newsletter", "spam"). */
+  tags: z.array(z.string().min(1)).min(1),
+  /** The correct bucket (the scripted golden sort / fallback). */
+  goldenBucket: EmailBucketKey,
+});
+const ConditionSchema = z.object({
+  id: z.string().min(1),
+  label: z.string().min(1), // chip text, e.g. "Mentions resignation / exit"
+  /** An email matches this condition when it carries this tag. */
+  matchTag: z.string().min(1),
+});
+const EmailRuleSchema = z.object({
+  conditionId: z.string().min(1),
+  bucketKey: EmailBucketKey,
+});
+const RubricCheckSchema = z.object({
+  /** Engine-known id: exits_urgent | leadership_separated | noise_filtered | all_matched. */
+  id: z.enum(["exits_urgent", "leadership_separated", "noise_filtered", "all_matched"]),
+  label: z.string().min(1),
+  /** Shown as the "one improvement" when THIS check is the first that fails. */
+  improvement: z.string().min(1),
+});
+const SetupPathSchema = z.object({
+  key: z.string().min(1),
+  title: z.string().min(1),
+  steps: z.array(z.string().min(1)).min(1),
+  note: z.string().optional(),
+});
+
+export const EmailSimSchema = z.object({
+  id: z.string().min(1),
+  kind: z.literal("email"),
+  xp: z.number().int().positive(),
+  badge: z.string().min(1),
+  intro: z.object({ copy: z.string().min(1), cta: z.string().min(1) }),
+  inboxIntro: z.string().min(1),
+  buckets: z.array(EmailBucketSchema).length(4),
+  inbox: z.array(InboxEmailSchema).min(1),
+  conditions: z.array(ConditionSchema).min(2),
+  /** Pre-suggested worked-example rules (the "existing solution" scaffold). */
+  starterRules: z.array(EmailRuleSchema).default([]),
+  decisionBeat: z.string().min(1), // after the first self-added rule
+  /** `{rules}` is replaced with the compiled rule lines. */
+  compiledPromptTemplate: z.string().min(1),
+  compiledPromptCopy: z.string().min(1),
+  rubric: z.object({
+    checks: z.array(RubricCheckSchema).min(1),
+    allClearNote: z.string().min(1), // shown when nothing to improve
+  }),
+  tweakCopy: z.string().min(1),
+  tweakDecisionBeat: z.string().min(1),
+  setup: z.object({
+    copy: z.string().min(1),
+    safety: z.string().min(1),
+    paths: z.array(SetupPathSchema).min(1),
+  }),
+  celebration: z.object({ copy: z.string().min(1) }),
+  grillBeat: GrillBeatSchema,
+});
+export type EmailSim = z.infer<typeof EmailSimSchema>;
+export type EmailBucket = z.infer<typeof EmailBucketKey>;
+export type InboxEmail = z.infer<typeof InboxEmailSchema>;
+export type EmailRule = z.infer<typeof EmailRuleSchema>;
+export type EmailCondition = z.infer<typeof ConditionSchema>;
+
+// --- System-explainer sim (PRD/10, "System X-Ray") --------------------------
+// A multimodal "understand any HR system" sim. MVP ships preset sample systems
+// (the reliable golden path — PRD says presets "so the sim always works"); live
+// text/image generation into the graph is a documented post-MVP seam. Rendered
+// from a typed node/edge graph (tappable, HR-glow) rather than raw Mermaid.
+export const SYS_NODE_KINDS = ["start", "step", "decision", "hr", "it", "end"] as const;
+
+const SysNodeSchema = z.object({
+  id: z.string().min(1),
+  label: z.string().min(1),
+  kind: z.enum(SYS_NODE_KINDS),
+  /** Plain-English card shown when the node is tapped. */
+  hint: z.string().min(1),
+  /** HR-owned step → glows + "HR owns this" badge. */
+  hr: z.boolean().default(false),
+  /** Decision-beat shown on an HR node (optional). */
+  decisionBeat: z.string().optional(),
+});
+const SysEdgeSchema = z.object({
+  from: z.string().min(1),
+  to: z.string().min(1),
+  label: z.string().optional(), // e.g. "Pass" / "Fail" on a decision branch
+});
+const SysEdgeCaseSchema = z.object({
+  risk: z.string().min(1),
+  why: z.string().min(1),
+});
+const SysSampleSchema = z
+  .object({
+    id: z.string().min(1),
+    label: z.string().min(1),
+    nodes: z.array(SysNodeSchema).min(2),
+    edges: z.array(SysEdgeSchema).min(1),
+    edgeCases: z.array(SysEdgeCaseSchema).min(1),
+    requirements: z.array(z.string().min(1)).min(1),
+    comprehension: z.object({
+      prompt: z.string().min(1),
+      correctNodeId: z.string().min(1),
+      insight: z.string().min(1),
+      hint: z.string().min(1),
+    }),
+    /** Mermaid text kept for the copy-able artifact / future rendering. */
+    mermaid: z.string().min(1),
+  })
+  .refine((s) => s.nodes.some((n) => n.id === s.comprehension.correctNodeId), {
+    message: "comprehension.correctNodeId must reference a node",
+    path: ["comprehension", "correctNodeId"],
+  });
+
+export const SystemSimSchema = z.object({
+  id: z.string().min(1),
+  kind: z.literal("system"),
+  xp: z.number().int().positive(),
+  badge: z.string().min(1),
+  intro: z.object({ copy: z.string().min(1), cta: z.string().min(1) }),
+  safety: z.string().min(1),
+  inputCopy: z.string().min(1),
+  samples: z.array(SysSampleSchema).min(1),
+  edgeCasesCopy: z.string().min(1),
+  requirementsCopy: z.string().min(1),
+  requirementsBanner: z.string().min(1),
+  celebration: z.object({ copy: z.string().min(1) }),
+  grillBeat: GrillBeatSchema,
+});
+export type SystemSim = z.infer<typeof SystemSimSchema>;
+export type SysNode = z.infer<typeof SysNodeSchema>;
+export type SysEdge = z.infer<typeof SysEdgeSchema>;
+export type SysSample = z.infer<typeof SysSampleSchema>;
+
 // --- Parse helpers (used by content files + the seed script) ----------------
 export const parseLesson = (data: unknown): Lesson => LessonSchema.parse(data);
 export const parseRapidFire = (data: unknown): RapidFireItem => RapidFireItemSchema.parse(data);
+export const parseRapidFireSet = (data: unknown): RapidFireSet => RapidFireSetSchema.parse(data);
 export const parseSim = (data: unknown): SimScript => SimScriptSchema.parse(data);
+export const parseEmailSim = (data: unknown): EmailSim => EmailSimSchema.parse(data);
+export const parseSystemSim = (data: unknown): SystemSim => SystemSimSchema.parse(data);
 export const parseTasteSim = (data: unknown): TasteSim => TasteSimSchema.parse(data);

@@ -107,9 +107,6 @@ export function LessonRunner({
         <div className="lr-bar">
           <i style={{ width: `${Math.round(progress * 100)}%` }} />
         </div>
-        <button className="lr-icon" onClick={() => router.push("/learn")} aria-label="Home">
-          🏠
-        </button>
       </header>
 
       <main className="lr-body">
@@ -252,6 +249,9 @@ export function LessonRunner({
         <footer className="lr-foot">
           <button className="lr-cta" disabled={!canContinue || saving} onClick={goNext}>
             {saving ? "Saving…" : continueLabel}
+          </button>
+          <button className="lr-home" onClick={() => router.push("/learn")}>
+            🏠 Home
           </button>
         </footer>
       )}

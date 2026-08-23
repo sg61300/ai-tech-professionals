@@ -1,0 +1,562 @@
+/* Inbox Tamer sim — Teal & Coral tokens only (globals.css). Full-height inside
+   the .app-surface frame. Violet = the "AI is happening" moments. */
+
+.es {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
+.es-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 80px 6px 16px; /* right pad clears the corner theme toggle (12–70px) */
+}
+.es-icon {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--foreground);
+  font-size: 17px;
+  cursor: pointer;
+}
+.es-icon:active {
+  transform: scale(0.94);
+}
+.es-top-title {
+  font-family: var(--font-heading), sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+}
+.es-ghost {
+  border: none;
+  background: transparent;
+  pointer-events: none;
+}
+.es-home {
+  display: block;
+  margin: 10px auto 0;
+  padding: 6px 14px;
+  background: none;
+  border: none;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.es-home:active {
+  transform: scale(0.96);
+}
+
+.es-body {
+  flex: 1;
+  padding: 12px 20px 20px;
+  overflow-y: auto;
+}
+.es-center {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px 26px;
+  gap: 12px;
+}
+
+.es-hero {
+  font-size: 60px;
+}
+.es-h1 {
+  font-family: var(--font-heading), sans-serif;
+  font-weight: 800;
+  font-size: 25px;
+  line-height: 1.15;
+  margin: 2px 0;
+}
+.es-copy {
+  color: var(--foreground);
+  line-height: 1.45;
+}
+.es-muted {
+  color: var(--muted-foreground);
+  font-size: 14px;
+}
+.es-kicker {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--violet);
+  margin: 14px 0 8px;
+}
+
+/* CTA */
+.es-cta {
+  width: 100%;
+  padding: 15px 20px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--teal);
+  color: var(--primary-foreground);
+  font-family: var(--font-heading), sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  cursor: pointer;
+  transition: transform 0.08s, filter 0.15s;
+}
+.es-cta:not(:disabled):active {
+  transform: scale(0.98);
+}
+.es-cta:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.es-cta.ghost {
+  background: var(--card);
+  color: var(--foreground);
+  border: 1.5px solid var(--border);
+}
+.es-foot {
+  padding: 12px 20px calc(18px + env(safe-area-inset-bottom));
+}
+.es-foot-row {
+  display: flex;
+  gap: 10px;
+  padding: 12px 20px calc(18px + env(safe-area-inset-bottom));
+}
+.es-link {
+  display: block;
+  margin: 10px auto 0;
+  background: none;
+  border: none;
+  color: var(--muted-foreground);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* messy inbox */
+.es-stack {
+  display: grid;
+  gap: 8px;
+  margin: 14px 0;
+}
+.es-mail {
+  display: flex;
+  flex-direction: column;
+  padding: 11px 14px;
+  border-radius: var(--radius-md);
+  background: var(--card);
+  border: 1px solid var(--border);
+}
+.es-mail-from {
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+.es-mail-sub {
+  font-weight: 600;
+  font-size: 14px;
+}
+.es-buckets-key {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--muted-foreground);
+}
+
+/* rulebook */
+.es-rulebook {
+  display: grid;
+  gap: 8px;
+}
+.es-rule {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 12px;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--teal) 8%, var(--card));
+  border: 1px solid color-mix(in srgb, var(--teal) 30%, var(--border));
+  animation: es-in 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes es-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+.es-rule-txt {
+  flex: 1;
+  font-size: 14px;
+}
+.es-tag {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--violet);
+  background: color-mix(in srgb, var(--violet) 14%, transparent);
+  padding: 2px 6px;
+  border-radius: 999px;
+}
+.es-rule-x {
+  flex: none;
+  border: none;
+  background: none;
+  color: var(--muted-foreground);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.es-beat {
+  margin: 12px 0;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--amber) 14%, var(--card));
+  border: 1px solid color-mix(in srgb, var(--amber) 40%, var(--border));
+  font-size: 14px;
+  line-height: 1.4;
+}
+.es-beat-x {
+  display: block;
+  margin-top: 8px;
+  border: none;
+  background: none;
+  color: var(--teal);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.es-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.es-chip {
+  padding: 9px 13px;
+  border-radius: 999px;
+  border: 1.5px solid var(--border);
+  background: var(--card);
+  color: var(--foreground);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.es-chip:active {
+  transform: scale(0.96);
+  border-color: var(--teal);
+}
+.es-pick {
+  padding: 12px;
+  border-radius: var(--radius-md);
+  border: 1.5px dashed color-mix(in srgb, var(--teal) 40%, var(--border));
+}
+.es-bucket-btns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 8px;
+}
+.es-bucket-btn {
+  padding: 12px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--border);
+  background: var(--card);
+  font-weight: 600;
+  cursor: pointer;
+}
+.es-bucket-btn:active {
+  transform: scale(0.97);
+  border-color: var(--teal);
+}
+
+/* compiled prompt */
+.es-prompt {
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.5;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--violet) 8%, var(--card));
+  border: 1px solid color-mix(in srgb, var(--violet) 30%, var(--border));
+  color: var(--foreground);
+}
+
+/* run columns */
+.es-narration {
+  margin-bottom: 12px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--violet) 10%, var(--card));
+  border: 1px solid color-mix(in srgb, var(--violet) 32%, var(--border));
+  font-weight: 600;
+  line-height: 1.4;
+}
+.es-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.es-col {
+  padding: 10px;
+  border-radius: var(--radius-md);
+  background: var(--card);
+  border: 1px solid var(--border);
+  min-height: 90px;
+}
+.es-col.now {
+  border-color: color-mix(in srgb, var(--error) 45%, var(--border));
+}
+.es-col-h {
+  display: block;
+  font-weight: 700;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+.es-card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 9px;
+  margin-bottom: 6px;
+  border-radius: var(--radius-sm);
+  background: var(--background);
+  border: 1px solid var(--border);
+  animation: es-in 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.es-card-sub {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.es-card-reason {
+  font-size: 10.5px;
+  color: var(--muted-foreground);
+}
+.es-empty {
+  color: var(--muted-foreground);
+  font-size: 20px;
+}
+
+/* rubric — the coach card flips in real 3D on reveal (Design §Flow B) */
+.es-flip { perspective: 1200px; }
+.es-flip-inner {
+  transform-origin: center center;
+  will-change: transform;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .es-flip-inner { animation: es-flip-in 0.62s cubic-bezier(0.2, 0.75, 0.3, 1) both; }
+}
+@keyframes es-flip-in {
+  0% { transform: perspective(1200px) rotateY(-88deg) scale(0.96); opacity: 0; }
+  55% { opacity: 1; }
+  100% { transform: perspective(1200px) rotateY(0deg) scale(1); opacity: 1; }
+}
+
+.es-score {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.es-score b {
+  font-family: var(--font-heading), sans-serif;
+  font-size: 40px;
+  color: var(--teal);
+}
+.es-checks {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.es-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 13px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  font-size: 14px;
+  background: var(--card);
+}
+.es-check.pass {
+  border-color: color-mix(in srgb, var(--success) 40%, var(--border));
+  background: color-mix(in srgb, var(--success) 8%, var(--card));
+}
+.es-improve {
+  padding: 13px 15px;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--amber) 14%, var(--card));
+  border: 1px solid color-mix(in srgb, var(--amber) 40%, var(--border));
+  font-size: 14px;
+  line-height: 1.45;
+}
+.es-improve.clear {
+  background: color-mix(in srgb, var(--success) 12%, var(--card));
+  border-color: color-mix(in srgb, var(--success) 40%, var(--border));
+}
+.es-tweak {
+  margin-top: 12px;
+  text-align: center;
+}
+
+/* setup */
+.es-safety {
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--coral) 12%, var(--card));
+  border: 1.5px solid color-mix(in srgb, var(--coral) 45%, var(--border));
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  margin: 10px 0 14px;
+}
+.es-copy-btn {
+  width: 100%;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--teal);
+  background: color-mix(in srgb, var(--teal) 10%, var(--card));
+  color: var(--teal);
+  font-weight: 700;
+  cursor: pointer;
+  margin-bottom: 14px;
+}
+.es-path {
+  padding: 13px 15px;
+  border-radius: var(--radius-md);
+  background: var(--card);
+  border: 1px solid var(--border);
+  margin-bottom: 10px;
+}
+.es-path-h {
+  display: block;
+  font-family: var(--font-heading), sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+.es-path-steps {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+.es-path-note {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--muted-foreground);
+  font-style: italic;
+}
+
+/* done */
+.es-done {
+  gap: 14px;
+}
+.es-rune-hop {
+  width: 130px;
+  height: 130px;
+}
+.es-rune-hop img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  animation: es-hop 0.9s cubic-bezier(0.3, 1.3, 0.5, 1) infinite alternate;
+}
+@keyframes es-hop {
+  to {
+    transform: translateY(-13px) rotate(2deg);
+  }
+}
+.es-rewards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+.es-reward {
+  padding: 8px 13px;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 13px;
+}
+.es-reward.xp {
+  background: color-mix(in srgb, var(--teal) 16%, var(--card));
+  color: var(--teal);
+}
+.es-reward.badge {
+  background: color-mix(in srgb, var(--violet) 16%, var(--card));
+  color: var(--violet);
+}
+.es-reward.lvl {
+  background: color-mix(in srgb, var(--violet) 18%, var(--card));
+  color: var(--violet);
+}
+.es-reward.streak {
+  background: color-mix(in srgb, var(--amber) 20%, var(--card));
+  color: color-mix(in srgb, var(--amber) 60%, var(--foreground));
+}
+
+.es-grill {
+  width: 100%;
+  text-align: left;
+  margin-top: 8px;
+}
+.es-grill-q {
+  font-family: var(--font-heading), sans-serif;
+  font-weight: 700;
+  font-size: 17px;
+  margin: 0 0 12px;
+}
+.es-grill-opts {
+  display: grid;
+  gap: 8px;
+}
+.es-grill-opt {
+  text-align: left;
+  padding: 13px 14px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--border);
+  background: var(--card);
+  color: var(--foreground);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.es-grill-opt.right {
+  border-color: var(--success);
+  background: color-mix(in srgb, var(--success) 12%, var(--card));
+}
+.es-grill-opt.wrong {
+  border-color: var(--error);
+  background: color-mix(in srgb, var(--error) 10%, var(--card));
+}
+.es-retort {
+  margin-top: 10px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  line-height: 1.45;
+  background: color-mix(in srgb, var(--success) 10%, var(--card));
+  border: 1px solid color-mix(in srgb, var(--success) 35%, var(--border));
+}
+.es-retort.bad {
+  background: color-mix(in srgb, var(--amber) 14%, var(--card));
+  border-color: color-mix(in srgb, var(--amber) 40%, var(--border));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .es-rule,
+  .es-card,
+  .es-rune-hop img {
+    animation: none;
+  }
+}

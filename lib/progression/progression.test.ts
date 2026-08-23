@@ -31,12 +31,23 @@ describe("computeNodeStates", () => {
     expect(s.l4).toBe("locked");
   });
 
-  it("marks the rapid-fire + full sim 'soon' after all five lessons are done", () => {
+  it("opens rapid-fire (playable) but keeps the full sim locked until RF1 passes", () => {
     const s = computeNodeStates(L1_SPINE, new Set(["l1", "l2", "l3", "l4", "l5"]));
     expect(s.l5).toBe("done");
-    expect(s.rf1).toBe("soon");
-    expect(s["sim-email"]).toBe("soon");
+    expect(s.rf1).toBe("available"); // rapid fire is now playable
+    expect(s["sim-email"]).toBe("locked"); // still needs rf1 in completed
     expect(s["l2-locked"]).toBe("locked");
+  });
+
+  it("marks a completed rapid-fire 'done' and unlocks the full sim (playable)", () => {
+    const s = computeNodeStates(L1_SPINE, new Set(["l1", "l2", "l3", "l4", "l5", "rf1"]));
+    expect(s.rf1).toBe("done");
+    expect(s["sim-email"]).toBe("available"); // RF1 passed → Inbox Tamer is now playable
+  });
+
+  it("marks a completed taste sim 'done' on the path", () => {
+    const s = computeNodeStates(L1_SPINE, new Set(["l1", "l2", "taste-sim"]));
+    expect(s["taste-sim"]).toBe("done");
   });
 
   it("only ever marks one lesson 'current'", () => {

@@ -73,7 +73,9 @@ async function LearnHome() {
     <div className="lh">
       <header className="topbar">
         <div className="topbar-row">
-          <span className="flame">🔥 {streak}</span>
+          <Link href="/learn/streak" className="flame" aria-label="Open streak calendar">
+            🔥 {streak}
+          </Link>
           <span className="prog">
             <i style={{ width: `${Math.round(progress * 100)}%` }} />
           </span>
@@ -92,11 +94,17 @@ async function LearnHome() {
           <div className="bubble">
             {streak >= 2 ? (
               <>
-                🔥 <b>Day {streak}</b>, {name}. Pick up where you left off.
+                <span className="gline">
+                  🔥 Day {streak}, <b>{name}</b>.
+                </span>
+                <span className="gsub">Pick up where you left off.</span>
               </>
             ) : (
               <>
-                Welcome, <b>{name}</b>! Ready for a 5-minute win?
+                <span className="gline">
+                  Welcome, <b>{name}</b>!
+                </span>
+                <span className="gsub">Ready for a 5-minute win?</span>
               </>
             )}
           </div>

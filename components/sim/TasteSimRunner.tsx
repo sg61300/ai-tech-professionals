@@ -149,9 +149,6 @@ export function TasteSimRunner({
           <div className="lr-bar">
             <i style={{ width: `${Math.round(progress * 100)}%` }} />
           </div>
-          <button className="lr-icon" onClick={() => router.push("/learn")} aria-label="Home">
-            🏠
-          </button>
         </header>
       )}
 
@@ -370,10 +367,14 @@ export function TasteSimRunner({
 }
 
 function Foot({ label, onClick, disabled }: { label: string; onClick: () => void; disabled?: boolean }) {
+  const router = useRouter();
   return (
     <footer className="lr-foot">
       <button className="lr-cta" disabled={disabled} onClick={onClick}>
         {label}
+      </button>
+      <button className="lr-home" onClick={() => router.push("/learn")}>
+        🏠 Home
       </button>
     </footer>
   );

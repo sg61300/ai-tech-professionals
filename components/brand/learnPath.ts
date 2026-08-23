@@ -57,7 +57,7 @@ function jaggedArc(points: { x: number; y: number }[]): string {
     const steps = Math.max(4, Math.round(len / 16));
     for (let k = 0; k < steps; k++) {
       const t = k / steps;
-      const amp = (k % 2 === 0 ? 1 : -1) * 15;
+      const amp = (k % 2 === 0 ? 1 : -1) * 9;
       pts.push({ x: a.x + dx * t + px * amp, y: a.y + dy * t + py * amp });
     }
   }
@@ -80,8 +80,10 @@ export function buildLearnPath(spine: SpineNode[], states: Record<string, NodeSt
 
   const done = curve(centers.slice(0, frontier + 1));
   const base = curve(centers.slice(frontier));
-  // Electric arc runs jagged along the whole route so the animated glow reads.
-  const arc = jaggedArc(centers);
+  // Electric arc is JAGGED (lightning) and confined to JUST the active segment
+  // (current node → next node) so the animated bolt accents where you are, and
+  // never sprawls over the locked milestone labels further down the path.
+  const arc = jaggedArc(centers.slice(frontier, frontier + 2));
 
   const nodes: PathNode[] = spine.map((s, i) => {
     const state = states[s.id];
@@ -102,9 +104,34 @@ export function buildLearnPath(spine: SpineNode[], states: Record<string, NodeSt
     if (isLesson && (state === "current" || state === "done" || state === "available")) {
       node.href = `/learn/lesson/${s.id}`;
       node.ariaLabel = `${state === "done" ? "Review" : "Start"} lesson: ${s.title}`;
-    } else if (s.kind === "taste" && state === "available") {
+    }
+    // Small on-path card anchored to the CURRENT node (kept alongside the top
+    // Continue hero — "card = BOTH"). Sits on the side away from the node.
+    if (isLesson && state === "current") {
+      const anyDone = Object.values(states).includes("done");
+      const nodeOnLeft = left(i) <= 50;
+      // Card sits on the side opposite the node with a hard gap that clears the
+      // node even when it magnifies to 1.5x (node ~9% of width at its center),
+      // so it can grow without ever overlapping the node.
+      node.card = {
+        kick: anyDone ? "Continue" : "Start here",
+        num: s.id.replace(/^l/, ""),
+        title: s.title,
+        left: nodeOnLeft ? "60%" : "4%",
+        top: topPct,
+        width: nodeOnLeft ? "32%" : "36%",
+        align: nodeOnLeft ? "left" : "right",
+      };
+    }
+    if (s.kind === "taste" && (state === "available" || state === "done")) {
       node.href = `/learn/sim/${s.id}`;
-      node.ariaLabel = `Start: ${s.title}`;
+      node.ariaLabel = `${state === "done" ? "Replay" : "Start"}: ${s.title}`;
+    } else if (s.kind === "rapidfire" && (state === "available" || state === "done")) {
+      node.href = `/learn/rf/${s.id}`;
+      node.ariaLabel = `${state === "done" ? "Replay" : "Start"}: ${s.title}`;
+    } else if (s.kind === "sim" && (state === "available" || state === "done")) {
+      node.href = `/learn/sim/${s.id}`;
+      node.ariaLabel = `${state === "done" ? "Replay" : "Start"}: ${s.title}`;
     }
 
     // Side labels for the non-lesson milestones so learners know what's ahead.
@@ -112,17 +139,19 @@ export function buildLearnPath(spine: SpineNode[], states: Record<string, NodeSt
       const onRight = left(i) <= 50;
       const small =
         state === "locked" ? "LOCKED" : state === "soon" ? "COMING SOON" : undefined;
+      // Pushed to the outer edge (away from the winding path) so the label
+      // never sits on top of the line, even when it magnifies on scroll.
       node.vlab = {
         bold: s.title,
         small,
-        left: onRight ? "60%" : "6%",
+        left: onRight ? "64%" : "3%",
         top: topPct,
-        width: onRight ? "36%" : "44%",
+        width: onRight ? "33%" : "40%",
         align: onRight ? "left" : "right",
       };
     }
     return node;
   });
 
-  return { done, base, arc: base, nodes };
+  return { done, base, arc, nodes };
 }

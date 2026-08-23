@@ -1,6 +1,20 @@
 import { L1_UNIT1 } from "@/content/lessons/l1-unit1";
 import { TASTE_SIM } from "@/content/sims/taste";
-import { LessonSchema, TasteSimSchema, type Lesson, type TasteSim } from "@/content/schema";
+import { EMAIL_SIM } from "@/content/sims/email";
+import { SYSTEM_SIM } from "@/content/sims/system";
+import { RF1 } from "@/content/rapidfire/rf1";
+import {
+  LessonSchema,
+  TasteSimSchema,
+  EmailSimSchema,
+  SystemSimSchema,
+  RapidFireSetSchema,
+  type Lesson,
+  type TasteSim,
+  type EmailSim,
+  type SystemSim,
+  type RapidFireSet,
+} from "@/content/schema";
 
 /**
  * Content registry (git = source of truth, IMPLEMENTATION-PLAN §3.5). The app
@@ -54,15 +68,27 @@ export const L1_SPINE: SpineNode[] = [
     title: "Rapid Fire",
     glyph: "⚡",
     unlockAfter: ["l1", "l2", "l3", "l4", "l5"],
-    playable: false,
+    playable: true,
   },
   {
     id: "sim-email",
     kind: "sim",
     title: "Sim: Inbox Tamer",
     glyph: "📧",
-    unlockAfter: ["l1", "l2", "l3", "l4", "l5"],
-    playable: false,
+    // Gated behind RF1: passing the rapid fire unlocks the first full sim (PRD/11).
+    unlockAfter: ["l1", "l2", "l3", "l4", "l5", "rf1"],
+    playable: true,
+  },
+  {
+    id: "sim-system",
+    kind: "sim",
+    title: "Sim: System X-Ray",
+    glyph: "🩻",
+    // MVP sequencing: chained after Inbox Tamer (PRD/10's post-RF2 gate isn't
+    // reachable until L2 content lands). Sim completions write a node-ledger row
+    // (id="sim-email") so this unlocks once Inbox Tamer is done.
+    unlockAfter: ["l1", "l2", "l3", "l4", "l5", "rf1", "sim-email"],
+    playable: true,
   },
   { id: "l2-locked", kind: "lock", title: "Level 2", glyph: "🔒", unlockAfter: [], playable: false },
 ];
@@ -74,3 +100,25 @@ export const LESSON_XP = 20;
 export const tasteSim: TasteSim = TasteSimSchema.parse(TASTE_SIM);
 export const getSim = (id: string): TasteSim | undefined =>
   id === tasteSim.id ? tasteSim : undefined;
+
+/** The email sim ("Inbox Tamer"), validated at import. */
+export { EMAIL_SIM };
+export const emailSim: EmailSim = EmailSimSchema.parse(EMAIL_SIM);
+export const getEmailSim = (id: string): EmailSim | undefined =>
+  id === emailSim.id ? emailSim : undefined;
+
+/** The system-explainer sim ("System X-Ray"), validated at import. */
+export { SYSTEM_SIM };
+export const systemSim: SystemSim = SystemSimSchema.parse(SYSTEM_SIM);
+export const getSystemSim = (id: string): SystemSim | undefined =>
+  id === systemSim.id ? systemSim : undefined;
+
+/** XP awarded for PASSING a rapid-fire round (fixed; the in-round tally is cosmetic). */
+export const RAPIDFIRE_XP = 50;
+
+/** Rapid-fire sets, validated at import. */
+export { RF1 };
+export const RAPIDFIRE_SETS: RapidFireSet[] = [RF1].map((s) => RapidFireSetSchema.parse(s));
+const RF_BY_ID = new Map(RAPIDFIRE_SETS.map((s) => [s.id, s]));
+export const getRapidFire = (id: string): RapidFireSet | undefined => RF_BY_ID.get(id);
+export const isRapidFireId = (id: string): boolean => RF_BY_ID.has(id);

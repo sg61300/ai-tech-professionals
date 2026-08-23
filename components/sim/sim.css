@@ -1,18 +1,29 @@
 /* Taste sim runner — builds on the lesson runner's .lr-* classes.
    Only the sim-specific bits live here. Teal & Coral tokens. */
 
+/* Prompt-assembly card (matches Design/simulation-flows §Flow A): a clean white
+   card where each chosen value reads as a highlighted mono "token" chip. */
 .ts-bar {
-  margin: 6px 16px 2px;
-  padding: 10px 12px;
+  margin: 8px 16px 4px;
+  padding: 13px 15px;
   border-radius: var(--radius-lg);
-  background: color-mix(in srgb, var(--violet) 8%, var(--card));
-  border: 1px solid color-mix(in srgb, var(--violet) 28%, var(--border));
-  font-size: 12.5px;
-  line-height: 1.5;
+  background: var(--card);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-card);
+  font-size: 13px;
+  line-height: 1.9;
   color: var(--muted-foreground);
 }
 .ts-bar b {
-  color: var(--foreground);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--teal-deep);
+  background: var(--teal-tint);
+  border: 1px solid color-mix(in srgb, var(--teal) 22%, transparent);
+  padding: 1px 7px;
+  border-radius: 6px;
+  white-space: nowrap;
 }
 .ts-part {
   white-space: normal;

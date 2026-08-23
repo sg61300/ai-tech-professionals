@@ -37,17 +37,20 @@ export function computeNodeStates(
       out[node.id] = "locked";
       continue;
     }
+    // A finished node (lesson OR a completed sim/rapid-fire) always reads "done".
+    if (completed.has(node.id)) {
+      out[node.id] = "done";
+      continue;
+    }
     if (node.kind === "lesson") {
-      if (completed.has(node.id)) {
-        out[node.id] = "done";
-      } else if (!currentAssigned) {
+      if (!currentAssigned) {
         out[node.id] = "current";
         currentAssigned = true;
       } else {
         out[node.id] = "available";
       }
     } else {
-      // sim / rapid-fire / lock: unlocked but only "soon" if this build can run it.
+      // sim / rapid-fire: unlocked but only "available" if this build can run it.
       out[node.id] = node.playable ? "available" : "soon";
     }
   }

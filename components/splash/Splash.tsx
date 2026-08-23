@@ -27,6 +27,8 @@ export function Splash() {
         </div>
       </div>
 
+      <div className="splash-wordmark">RUNE</div>
+
       <div className="sheet">
         <h1>
           Actually <em>do your job</em> with AI.

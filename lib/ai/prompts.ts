@@ -1,4 +1,4 @@
-import type { TasteSim } from "@/content/schema";
+import type { TasteSim, EmailSim, EmailRule } from "@/content/schema";
 
 /**
  * Pure prompt assembly for the taste sim. Inputs are *indices* into the sim's
@@ -31,4 +31,27 @@ export function buildTastePrompt(sim: TasteSim, sel: TasteSelections): string {
     .replace("{context}", context)
     .replace("{task}", sim.assembled.task)
     .replace("{format}", format);
+}
+
+/**
+ * Prompt for the email-sim's single live-AI flourish: a short, witty one-liner
+ * about the just-completed sort. Built only from authored content (bucket
+ * labels + counts) — never user free text — so it's injection/DPDP-safe. The
+ * actual bucketing is deterministic (lib/emailsim); this is decoration with a
+ * guaranteed scripted fallback.
+ */
+export function buildSortNarrationPrompt(
+  sim: EmailSim,
+  rules: EmailRule[],
+  counts: Record<string, number>,
+): string {
+  const summary = sim.buckets
+    .map((b) => `${b.label}: ${counts[b.key] ?? 0}`)
+    .join(", ");
+  const ruleCount = rules.length;
+  return [
+    "You are Rune, a witty but sharp HR-AI coach.",
+    `A user just built an email sorter with ${ruleCount} rules. The sort landed as — ${summary}.`,
+    "In ONE upbeat sentence (max 22 words, no emojis), congratulate them and highlight that the urgent people-critical mail rose to the top.",
+  ].join(" ");
 }
