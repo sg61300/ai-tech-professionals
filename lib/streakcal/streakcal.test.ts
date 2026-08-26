@@ -77,4 +77,18 @@ describe("buildMonthGrid", () => {
     const today = g.weeks.flat().find((c) => c.kind === "day" && c.dayNum === 21);
     expect(today).toMatchObject({ state: "today", active: true });
   });
+
+  it("marks rescued days as 'saved' (missed but insured), not 'miss'", () => {
+    const g = buildMonthGrid({ ...base, savedDates: new Set(["2026-08-17"]) });
+    const byDay = (n: number) => g.weeks.flat().find((c) => c.kind === "day" && c.dayNum === n);
+    expect(byDay(17)).toMatchObject({ state: "saved", active: false });
+    // A different missed day stays "miss".
+    expect(byDay(18) && (byDay(18) as { state: string }).state).toBeDefined();
+  });
+
+  it("an active day is 'done' even if also in savedDates", () => {
+    const g = buildMonthGrid({ ...base, savedDates: new Set(["2026-08-20"]) });
+    const d20 = g.weeks.flat().find((c) => c.kind === "day" && c.dayNum === 20);
+    expect(d20).toMatchObject({ state: "done" });
+  });
 });

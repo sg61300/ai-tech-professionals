@@ -4,7 +4,8 @@
 .es {
   display: flex;
   flex-direction: column;
-  min-height: 100dvh;
+  height: 100dvh; /* fixed to viewport so the body scrolls internally (header + footer pinned) */
+  overflow: hidden;
 }
 
 .es-top {
@@ -55,11 +56,17 @@
 
 .es-body {
   flex: 1;
+  min-height: 0; /* lets overflow-y actually constrain inside the fixed-height .es */
   padding: 12px 20px 20px;
   overflow-y: auto;
+  scrollbar-width: none;
 }
+.es-body::-webkit-scrollbar { display: none; }
 .es-center {
   flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: none;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -68,6 +75,7 @@
   padding: 24px 26px;
   gap: 12px;
 }
+.es-center::-webkit-scrollbar { display: none; }
 
 .es-hero {
   font-size: 60px;
@@ -123,7 +131,10 @@
   border: 1.5px solid var(--border);
 }
 .es-foot {
+  flex: none;
   padding: 12px 20px calc(18px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--border);
+  background: var(--background);
 }
 .es-foot-row {
   display: flex;
@@ -459,7 +470,14 @@
 
 /* done */
 .es-done {
+  min-height: 70dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
   gap: 14px;
+  padding: 8px 6px 4px;
 }
 .es-rune-hop {
   width: 130px;

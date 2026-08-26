@@ -1,8 +1,11 @@
 import { L1_UNIT1 } from "@/content/lessons/l1-unit1";
+import { L1_UNIT2 } from "@/content/lessons/l1-unit2";
+import { L1_UNIT3 } from "@/content/lessons/l1-unit3";
 import { TASTE_SIM } from "@/content/sims/taste";
 import { EMAIL_SIM } from "@/content/sims/email";
 import { SYSTEM_SIM } from "@/content/sims/system";
 import { RF1 } from "@/content/rapidfire/rf1";
+import { RF2 } from "@/content/rapidfire/rf2";
 import {
   LessonSchema,
   TasteSimSchema,
@@ -23,7 +26,9 @@ import {
  * at import so malformed content can never ship.
  */
 
-export const LESSONS: Lesson[] = [...L1_UNIT1].map((l) => LessonSchema.parse(l));
+export const LESSONS: Lesson[] = [...L1_UNIT1, ...L1_UNIT2, ...L1_UNIT3].map((l) =>
+  LessonSchema.parse(l),
+);
 
 const LESSON_BY_ID = new Map(LESSONS.map((l) => [l.id, l]));
 export const getLesson = (id: string): Lesson | undefined => LESSON_BY_ID.get(id);
@@ -49,8 +54,9 @@ export type SpineNode = {
 };
 
 export const L1_SPINE: SpineNode[] = [
-  { id: "l1", kind: "lesson", title: "What AI really is", unlockAfter: [], playable: true },
-  { id: "l2", kind: "lesson", title: "Anatomy of a great prompt", unlockAfter: ["l1"], playable: true },
+  // --- Unit 1: Foundations & First Wins ---
+  { id: "l1", kind: "lesson", title: "What AI really is", glyph: "🤖", unlockAfter: [], playable: true },
+  { id: "l2", kind: "lesson", title: "Anatomy of a great prompt", glyph: "✍️", unlockAfter: ["l1"], playable: true },
   {
     id: "taste-sim",
     kind: "taste",
@@ -59,13 +65,13 @@ export const L1_SPINE: SpineNode[] = [
     unlockAfter: ["l1", "l2"],
     playable: true,
   },
-  { id: "l3", kind: "lesson", title: "Context is everything", unlockAfter: ["l2"], playable: true },
-  { id: "l4", kind: "lesson", title: "Tokens & the context window", unlockAfter: ["l3"], playable: true },
-  { id: "l5", kind: "lesson", title: "Iterating like a pro", unlockAfter: ["l4"], playable: true },
+  { id: "l3", kind: "lesson", title: "Context is everything", glyph: "🧩", unlockAfter: ["l2"], playable: true },
+  { id: "l4", kind: "lesson", title: "Tokens & the context window", glyph: "🎟️", unlockAfter: ["l3"], playable: true },
+  { id: "l5", kind: "lesson", title: "Iterating like a pro", glyph: "🔁", unlockAfter: ["l4"], playable: true },
   {
     id: "rf1",
     kind: "rapidfire",
-    title: "Rapid Fire",
+    title: "Rapid Fire · Foundations",
     glyph: "⚡",
     unlockAfter: ["l1", "l2", "l3", "l4", "l5"],
     playable: true,
@@ -79,17 +85,35 @@ export const L1_SPINE: SpineNode[] = [
     unlockAfter: ["l1", "l2", "l3", "l4", "l5", "rf1"],
     playable: true,
   },
+  // --- Unit 2: The HR Daily Toolkit ---
+  { id: "l6", kind: "lesson", title: "Inbox triage", glyph: "📥", unlockAfter: ["l5"], playable: true },
+  { id: "l7", kind: "lesson", title: "Notes to minutes", glyph: "📝", unlockAfter: ["l6"], playable: true },
+  { id: "l8", kind: "lesson", title: "Presentation outlining", glyph: "📊", unlockAfter: ["l7"], playable: true },
+  { id: "l9", kind: "lesson", title: "Query handling", glyph: "💬", unlockAfter: ["l8"], playable: true },
+  { id: "l10", kind: "lesson", title: "When NOT to trust AI", glyph: "⚠️", unlockAfter: ["l9"], playable: true },
+  {
+    id: "rf2",
+    kind: "rapidfire",
+    title: "Rapid Fire · Daily Toolkit",
+    glyph: "⚡",
+    // Covers Lessons 6-10; passing unlocks the second full sim (PRD/11).
+    unlockAfter: ["l6", "l7", "l8", "l9", "l10"],
+    playable: true,
+  },
   {
     id: "sim-system",
     kind: "sim",
     title: "Sim: System X-Ray",
     glyph: "🩻",
-    // MVP sequencing: chained after Inbox Tamer (PRD/10's post-RF2 gate isn't
-    // reachable until L2 content lands). Sim completions write a node-ledger row
-    // (id="sim-email") so this unlocks once Inbox Tamer is done.
-    unlockAfter: ["l1", "l2", "l3", "l4", "l5", "rf1", "sim-email"],
+    // PRD/04 sequencing: unlocks after Rapid-fire 2. RF completion writes a
+    // node-ledger row (id="rf2") so this opens once RF2 is passed.
+    unlockAfter: ["l6", "l7", "l8", "l9", "l10", "rf2"],
     playable: true,
   },
+  // --- Unit 3: Think Like a Decision-Maker (capstone) ---
+  { id: "l11", kind: "lesson", title: "Your second brain", glyph: "🧠", unlockAfter: ["l10"], playable: true },
+  { id: "l12", kind: "lesson", title: "Decision-maker capstone", glyph: "🎯", unlockAfter: ["l11"], playable: true },
+  // Level 1 complete -> Level 2 revealed as a locked outline.
   { id: "l2-locked", kind: "lock", title: "Level 2", glyph: "🔒", unlockAfter: [], playable: false },
 ];
 
@@ -117,8 +141,8 @@ export const getSystemSim = (id: string): SystemSim | undefined =>
 export const RAPIDFIRE_XP = 50;
 
 /** Rapid-fire sets, validated at import. */
-export { RF1 };
-export const RAPIDFIRE_SETS: RapidFireSet[] = [RF1].map((s) => RapidFireSetSchema.parse(s));
+export { RF1, RF2 };
+export const RAPIDFIRE_SETS: RapidFireSet[] = [RF1, RF2].map((s) => RapidFireSetSchema.parse(s));
 const RF_BY_ID = new Map(RAPIDFIRE_SETS.map((s) => [s.id, s]));
 export const getRapidFire = (id: string): RapidFireSet | undefined => RF_BY_ID.get(id);
 export const isRapidFireId = (id: string): boolean => RF_BY_ID.has(id);

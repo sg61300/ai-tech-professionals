@@ -51,8 +51,10 @@ export type PathData = {
   done: string;
   /** SVG `d` for the dotted upcoming spine. */
   base: string;
-  /** SVG `d` for the electric arc overlay. */
+  /** SVG `d` for the primary electric-arc bolt (twin-crackle style). */
   arc: string;
+  /** SVG `d` for the second, opposite-bowed crackle bolt. */
+  arc2?: string;
   nodes: PathNode[];
   dividers?: { text: string; top: string }[];
 };
@@ -72,6 +74,9 @@ export function LessonPath({ data, greyed = false }: { data: PathData; greyed?: 
     let sc: HTMLElement | null = root.parentElement;
     while (sc && sc.scrollHeight <= sc.clientHeight + 1) sc = sc.parentElement;
 
+    // Nodes, dividers, side cards AND labels all get the scroll-focus --f. The
+    // side cards/labels scale INWARD (transform-origin pinned to the app-edge
+    // side, gentle damping) so they enlarge without leaving the frame — see CSS.
     const focusables = () =>
       Array.from(root.querySelectorAll<HTMLElement>(".pn, .vlab, .udiv, .rcard"));
 
@@ -100,14 +105,39 @@ export function LessonPath({ data, greyed = false }: { data: PathData; greyed?: 
     };
   }, [data, greyed]);
 
+  // Node positions are percentages of the trail height, so a fixed 920px trail
+  // packs more nodes tighter and the milestone labels start overlapping. Grow
+  // the trail (and thus the scroll area) with the node count to keep a constant
+  // ~per-node gap; small preview paths stay at the original 920px floor.
+  const trailHeight = Math.max(920, data.nodes.length * 94);
+
   return (
     <div ref={rootRef} className={`lesson-path${greyed ? " greyed" : ""}`} aria-hidden={greyed || undefined}>
-      <div className="vtrail">
+      <div className="vtrail" style={{ height: `${trailHeight}px` }}>
         <svg viewBox="0 0 240 920" preserveAspectRatio="none" aria-hidden="true">
-          <path d={data.done} fill="none" stroke="#22C55E" strokeWidth={6} strokeLinecap="round" />
+          <defs>
+            <linearGradient id="donegrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="#5fcf95" />
+              <stop offset="1" stopColor="#2f9e6d" />
+            </linearGradient>
+          </defs>
+          <path className="pdone" d={data.done} fill="none" />
           <path className="base" d={data.base} />
-          <path className="parc" d={data.arc} />
-          <path className="parc hot" d={data.arc} />
+          {/* Twin-crackle electric arc, plasma colours: each bolt = wide blue
+              glow + mid blue flicker + bright white core; the two bolts crackle
+              on offset timings (via .parc-bolt / .parc-bolt.alt). */}
+          <g className="parc-bolt">
+            <path className="parc glow" d={data.arc} />
+            <path className="parc flow" d={data.arc} />
+            <path className="parc core" d={data.arc} />
+          </g>
+          {data.arc2 && (
+            <g className="parc-bolt alt">
+              <path className="parc glow" d={data.arc2} />
+              <path className="parc flow" d={data.arc2} />
+              <path className="parc core" d={data.arc2} />
+            </g>
+          )}
         </svg>
 
         {data.dividers?.map((d, i) => (
@@ -135,7 +165,7 @@ export function LessonPath({ data, greyed = false }: { data: PathData; greyed?: 
             )}
             {n.vlab && (
               <span
-                className="vlab"
+                className={`vlab ${n.vlab.align}`}
                 style={{
                   left: n.vlab.left,
                   top: n.vlab.top,

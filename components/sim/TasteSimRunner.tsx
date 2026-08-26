@@ -10,6 +10,7 @@ import {
   type TasteCompleteResult,
 } from "@/app/(app)/learn/sim/[id]/actions";
 import { RuneLoader } from "@/components/brand/RuneLoader";
+import { RuneMascot } from "@/components/brand/RuneMascot";
 import "@/components/lesson/lesson.css";
 import "./sim.css";
 
@@ -170,9 +171,8 @@ export function TasteSimRunner({
       <main className="lr-body">
         {step === "intro" && (
           <section className="lr-done" style={{ minHeight: "60dvh" }}>
-            <div className="lr-rune-hop">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/mascot/rune-hero-clean.png" alt="Rune" />
+            <div className="rune-cel">
+              <RuneMascot state="greet" spriteSrc="/mascot/rune-hero-clean.png" dimensions={168} />
             </div>
             <p className="lr-kicker">Taste Sim</p>
             <h1 className="lr-done-title">Ship your first AI draft</h1>
@@ -297,9 +297,8 @@ export function TasteSimRunner({
 
         {step === "celebrate" && (
           <section className="lr-done">
-            <div className="lr-rune-hop">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/mascot/rune-hero-clean.png" alt="Rune celebrating" />
+            <div className="rune-cel">
+              <RuneMascot state="celebrate" spriteSrc="/mascot/rune-hero-clean.png" dimensions={168} />
             </div>
             <h1 className="lr-done-title">You shipped it! 🎉</h1>
             <p className="lr-done-sub">{sim.celebration.copy}</p>

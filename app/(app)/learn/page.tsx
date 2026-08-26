@@ -6,10 +6,14 @@ import { displayName } from "@/lib/display";
 import { levelProgress } from "@/lib/xp";
 import { L1_SPINE, getLesson } from "@/content";
 import { computeNodeStates, nextPlayableLesson } from "@/lib/progression";
+import { reelsHasNew } from "@/lib/reels/newness";
 import { LessonPath } from "@/components/brand/LessonPath";
 import { buildLearnPath } from "@/components/brand/learnPath";
 import { TabBar } from "@/components/app/TabBar";
 import { RuneLoader } from "@/components/brand/RuneLoader";
+import { assessStreakRisk } from "@/lib/streakinsurance";
+import { StreakInsurancePrompt } from "@/components/streak/StreakInsurancePrompt";
+import { XpInfo } from "@/components/brand/XpInfo";
 
 /**
  * Learn home (ADR-015/017). Top bar (level/XP/streak) + Rune greeting + the
@@ -20,6 +24,10 @@ import { RuneLoader } from "@/components/brand/RuneLoader";
  * live `lesson_progress` (real done/current/locked nodes) lands with the L1
  * content seed, next in Slice 1.
  */
+// Live, personalized dashboard (progress/XP/streak + at-risk prompt) — always
+// render fresh so it reflects the latest activity, never a cached fetch.
+export const dynamic = "force-dynamic";
+
 export default function LearnPage() {
   return (
     <Suspense
@@ -43,7 +51,9 @@ async function LearnHome() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("name, avatar_name, avatar_key, xp, level, streak_count, onboarding_complete")
+    .select(
+      "name, avatar_name, avatar_key, xp, level, streak_count, last_active_date, timezone, onboarding_complete",
+    )
     .eq("id", user.id)
     .single();
 
@@ -54,6 +64,16 @@ async function LearnHome() {
   const xp = profile?.xp ?? 0;
   const streak = profile?.streak_count ?? 0;
   const { level, progress } = levelProgress(xp);
+
+  // Streak insurance: if the user is back after missing 1–2 days, offer to spend
+  // XP to keep their streak (the mercy mechanic — lib/streakinsurance, ADR-002).
+  const streakRisk = assessStreakRisk({
+    lastActiveDate: profile?.last_active_date ?? null,
+    now: new Date(),
+    timeZone: profile?.timezone ?? "Asia/Kolkata",
+    currentStreak: streak,
+    xp,
+  });
 
   // Live progression: which lessons are done drives every node's state.
   const { data: progressRows } = await supabase
@@ -69,6 +89,8 @@ async function LearnHome() {
   const resumeLesson = resumeId ? getLesson(resumeId) : null;
   const allDone = resumeId === null;
 
+  const reelsNew = await reelsHasNew(supabase, user.id);
+
   return (
     <div className="lh">
       <header className="topbar">
@@ -79,9 +101,10 @@ async function LearnHome() {
           <span className="prog">
             <i style={{ width: `${Math.round(progress * 100)}%` }} />
           </span>
-          <span className="xp">
-            L{level} · {xp.toLocaleString()} XP
-          </span>
+          {/* ⭐ tier = XP gamification level; NOT the curriculum Level (avoids the
+              "L3" vs "Level 1" collision — profile calls it AI Awesomeness Progression).
+              Clickable + pulsing → opens the XP explainer. */}
+          <XpInfo level={level} xp={xp} />
         </div>
       </header>
 
@@ -112,6 +135,15 @@ async function LearnHome() {
       </div>
 
       <main className="lh-content">
+        {streakRisk.atRisk && (
+          <StreakInsurancePrompt
+            streak={streakRisk.streak}
+            missedDays={streakRisk.missedDays}
+            cost={streakRisk.cost}
+            costPct={streakRisk.costPct}
+          />
+        )}
+
         {resumeLesson ? (
           <Link href={`/learn/lesson/${resumeLesson.id}`} className="resume-card">
             <span className="resume-kick">{completed.size === 0 ? "Start here" : "Continue"}</span>
@@ -134,7 +166,7 @@ async function LearnHome() {
         <LessonPath data={pathData} />
       </main>
 
-      <TabBar avatarKey={profile?.avatar_key} />
+      <TabBar avatarKey={profile?.avatar_key} reelsNew={reelsNew} />
     </div>
   );
 }

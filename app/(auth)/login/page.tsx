@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { RuneMascot } from '@/components/brand/RuneMascot';
@@ -29,6 +29,15 @@ export default function LoginPage() {
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [cooldown, setCooldown] = useState(0); // seconds until "Resend code" re-enables
+
+  // Tick the resend cooldown down to zero (rate-limits resends, avoids spamming).
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = setTimeout(() => setCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [cooldown]);
 
   async function sendCode(e: React.FormEvent) {
     e.preventDefault();
@@ -46,6 +55,22 @@ export default function LoginPage() {
     setBusy(false);
     if (error) return setError(error.message);
     setStep('code');
+    setCooldown(30); // let the first email land before a resend is allowed
+  }
+
+  // Resend the 6-digit code (rate-limited by `cooldown`). Inline — no full loader.
+  async function resendCode() {
+    if (cooldown > 0 || busy) return;
+    setError(null);
+    setNotice(null);
+    const supabase = createClient();
+    const { error } = await supabase.auth.signInWithOtp({
+      email: email.trim(),
+      options: { shouldCreateUser: true },
+    });
+    if (error) return setError(error.message);
+    setNotice('New code sent. Check your inbox (and spam).');
+    setCooldown(30);
   }
 
   async function verifyCode(e: React.FormEvent) {
@@ -140,9 +165,21 @@ export default function LoginPage() {
           </Button>
           <button
             type="button"
+            onClick={resendCode}
+            disabled={cooldown > 0}
+            className="w-full text-center text-sm font-semibold text-[color:var(--teal-deep)] transition-colors hover:text-[color:var(--teal)] disabled:cursor-not-allowed disabled:text-muted-foreground disabled:no-underline"
+          >
+            {cooldown > 0 ? `Resend code in ${cooldown}s` : 'Resend code'}
+          </button>
+          {notice && (
+            <p className="text-center text-xs font-medium text-[color:var(--teal-deep)]">{notice}</p>
+          )}
+          <button
+            type="button"
             onClick={() => {
               setStep('email');
               setCode('');
+              setNotice(null);
             }}
             className="w-full text-center text-xs text-muted-foreground underline transition-colors hover:text-foreground"
           >
@@ -155,7 +192,11 @@ export default function LoginPage() {
         <span className="h-px flex-1 bg-border" /> or <span className="h-px flex-1 bg-border" />
       </div>
 
-      <Button variant="outline" onClick={google} className="w-full gap-2">
+      <Button
+        variant="outline"
+        onClick={google}
+        className="w-full gap-2 border-border bg-card font-semibold shadow-sm transition-all hover:border-[color:var(--teal)] hover:bg-[color:var(--teal-tint)] hover:shadow-md dark:bg-card"
+      >
         <GoogleIcon />
         Continue with Google
       </Button>

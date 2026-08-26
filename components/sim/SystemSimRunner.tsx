@@ -13,6 +13,7 @@ import {
   completeSystemSim,
   type SystemCompleteResult,
 } from "@/app/(app)/learn/sim/[id]/system-actions";
+import { RuneMascot } from "@/components/brand/RuneMascot";
 import "./system.css";
 
 /**
@@ -178,7 +179,7 @@ export function SystemSimRunner({
             ))}
           </div>
           <div className="sx-soon">
-            📝 Describe it / 🖼️ Upload a screenshot — <b>coming soon</b>. For now we map the
+            📝 Describe it / 🖼️ Upload a screenshot: <b>coming soon</b>. For now we map the
             closest preset.
           </div>
         </main>
@@ -274,7 +275,7 @@ export function SystemSimRunner({
         <main className="sx-body">
           <p className="sx-copy">{sim.requirementsCopy}</p>
           <div className="sx-reqbox">
-            <b>{sample.label} — must-haves (draft):</b>
+            <b>{sample.label}, must-haves (draft):</b>
             <ul>
               {sample.requirements.map((r, i) => (
                 <li key={i}>{r}</li>
@@ -299,22 +300,22 @@ export function SystemSimRunner({
   // ========================================================================== done
   return (
     <div className="sx">
-      <main className="sx-center sx-done">
-        <div className="sx-rune-hop">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/mascot/rune-hero-clean.png" alt="Rune celebrating" />
+      <main className="sx-body">
+        <section className="sx-done">
+        <div className="rune-cel">
+          <RuneMascot state="celebrate" spriteSrc="/mascot/rune-hero-clean.png" dimensions={168} />
         </div>
         <h1 className="sx-h1">System X-Ray! 🎉</h1>
         <p className="sx-copy">{sim.celebration.copy}</p>
 
         {result && result.ok ? (
           result.alreadyDone ? (
-            <p className="sx-muted">Already completed — your X-ray is saved in your second brain.</p>
+            <p className="sx-muted">Already completed. Your X-ray is saved in your second brain.</p>
           ) : (
             <div className="sx-rewards">
               <span className="sx-reward xp">+{result.xpAwarded} XP</span>
               <span className="sx-reward badge">🏆 {result.badge}</span>
-              {result.leveledUp && <span className="sx-reward lvl">Level {result.newLevel}!</span>}
+              {result.leveledUp && <span className="sx-reward lvl">Tier {result.newLevel}!</span>}
               {result.streakAdvanced && (
                 <span className="sx-reward streak">🔥 {result.streak}-day streak</span>
               )}
@@ -353,15 +354,16 @@ export function SystemSimRunner({
           )}
         </div>
 
-        <div className="sx-foot-row">
-          <button className="sx-cta ghost" onClick={copyReq}>
-            {copyLabel}
-          </button>
-          <button className="sx-cta" onClick={() => router.push("/learn")}>
-            Done →
-          </button>
-        </div>
+        </section>
       </main>
+      <footer className="sx-foot sx-foot-row">
+        <button className="sx-cta ghost" onClick={copyReq}>
+          {copyLabel}
+        </button>
+        <button className="sx-cta" onClick={() => router.push("/learn")}>
+          Done →
+        </button>
+      </footer>
     </div>
   );
 }

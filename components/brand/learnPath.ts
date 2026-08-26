@@ -38,31 +38,50 @@ function curve(points: { x: number; y: number }[]): string {
   return d;
 }
 
-/**
- * Jagged "electric arc" polyline along the route (matches the confirmed
- * prototype's `.parc`). Zig-zags perpendicular to each segment so the animated
- * glow reads as a lightning bolt rather than a smooth line.
- */
-function jaggedArc(points: { x: number; y: number }[]): string {
-  if (points.length < 2) return "";
-  const pts: { x: number; y: number }[] = [];
-  for (let i = 0; i < points.length - 1; i++) {
-    const a = points[i];
-    const b = points[i + 1];
-    const dx = b.x - a.x;
-    const dy = b.y - a.y;
-    const len = Math.hypot(dx, dy) || 1;
-    const px = -dy / len; // unit perpendicular
-    const py = dx / len;
-    const steps = Math.max(4, Math.round(len / 16));
-    for (let k = 0; k < steps; k++) {
-      const t = k / steps;
-      const amp = (k % 2 === 0 ? 1 : -1) * 9;
-      pts.push({ x: a.x + dx * t + px * amp, y: a.y + dy * t + py * amp });
-    }
+// --- Electric arc: twin-crackle bolts (chosen style #14, plasma colours #15) --
+type Pt = { x: number; y: number };
+
+/** Deterministic pseudo-random in [-1,1] so SSR and client render the same bolt. */
+function rnd(i: number, seed: number): number {
+  return (Math.sin(i * 12.9898 + seed * 78.233) * 43758.5453) % 1;
+}
+/** A bowed arc of N points bulging to one side (bell-shaped). */
+function arcPts(a: Pt, b: Pt, bow: number, N = 14): Pt[] {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const len = Math.hypot(dx, dy) || 1;
+  const px = -dy / len;
+  const py = dx / len;
+  const pts: Pt[] = [];
+  for (let k = 0; k <= N; k++) {
+    const t = k / N;
+    const bell = Math.sin(t * Math.PI) * bow;
+    pts.push({ x: a.x + dx * t + px * bell, y: a.y + dy * t + py * bell });
   }
-  pts.push(points[points.length - 1]);
-  return "M" + pts.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" L");
+  return pts;
+}
+/** Add jagged electric jitter perpendicular to the local direction. */
+function roughen(pts: Pt[], amp: number, seed = 0): Pt[] {
+  return pts.map((p, i) => {
+    if (i === 0 || i === pts.length - 1) return p;
+    const a = pts[i - 1];
+    const c = pts[i + 1];
+    const dx = c.x - a.x;
+    const dy = c.y - a.y;
+    const l = Math.hypot(dx, dy) || 1;
+    const o = rnd(i, seed) * amp;
+    return { x: p.x + (-dy / l) * o, y: p.y + (dx / l) * o };
+  });
+}
+const toPath = (pts: Pt[]) => "M" + pts.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" L");
+
+/** Two offset jagged bolts (twin crackle) between the two given points. */
+function twinCrackle(seg: Pt[]): { arc: string; arc2: string } {
+  if (seg.length < 2) return { arc: "", arc2: "" };
+  return {
+    arc: toPath(roughen(arcPts(seg[0], seg[1], 9), 3.5, 2)),
+    arc2: toPath(roughen(arcPts(seg[0], seg[1], -7), 3.5, 9)),
+  };
 }
 
 export function buildLearnPath(spine: SpineNode[], states: Record<string, NodeState>): PathData {
@@ -80,16 +99,19 @@ export function buildLearnPath(spine: SpineNode[], states: Record<string, NodeSt
 
   const done = curve(centers.slice(0, frontier + 1));
   const base = curve(centers.slice(frontier));
-  // Electric arc is JAGGED (lightning) and confined to JUST the active segment
-  // (current node → next node) so the animated bolt accents where you are, and
-  // never sprawls over the locked milestone labels further down the path.
-  const arc = jaggedArc(centers.slice(frontier, frontier + 2));
+  // Electric arc = twin-crackle bolts (chosen style #14, plasma colours #15),
+  // confined to JUST the active segment (current node → next node) so the
+  // animated discharge accents where you are and never sprawls over the locked
+  // milestone labels further down the path.
+  const { arc, arc2 } = twinCrackle(centers.slice(frontier, frontier + 2));
 
   const nodes: PathNode[] = spine.map((s, i) => {
     const state = states[s.id];
     const kind = KIND_BY_STATE[state];
     const isLesson = s.kind === "lesson";
-    const label = isLesson ? s.id.replace(/^l/, "") : (s.glyph ?? "•");
+    // Prefer the node's topic glyph (an icon of what the lesson is about); fall
+    // back to the lesson number only if none is set, and "•" for other nodes.
+    const label = s.glyph ?? (isLesson ? s.id.replace(/^l/, "") : "•");
     const leftPct = `${left(i)}%`;
     const topPct = `${top(i)}%`;
 
@@ -109,17 +131,17 @@ export function buildLearnPath(spine: SpineNode[], states: Record<string, NodeSt
     // Continue hero — "card = BOTH"). Sits on the side away from the node.
     if (isLesson && state === "current") {
       const anyDone = Object.values(states).includes("done");
+      // Card sits on the side OPPOSITE the node, in the outer margin (never
+      // crossing the winding path). It is NOT scaled on scroll (see LessonPath),
+      // so these fixed insets keep it clear of the node and inside the app.
       const nodeOnLeft = left(i) <= 50;
-      // Card sits on the side opposite the node with a hard gap that clears the
-      // node even when it magnifies to 1.5x (node ~9% of width at its center),
-      // so it can grow without ever overlapping the node.
       node.card = {
         kick: anyDone ? "Continue" : "Start here",
         num: s.id.replace(/^l/, ""),
         title: s.title,
-        left: nodeOnLeft ? "60%" : "4%",
+        left: nodeOnLeft ? "67%" : "3%",
         top: topPct,
-        width: nodeOnLeft ? "32%" : "36%",
+        width: nodeOnLeft ? "30%" : "34%",
         align: nodeOnLeft ? "left" : "right",
       };
     }
@@ -136,11 +158,11 @@ export function buildLearnPath(spine: SpineNode[], states: Record<string, NodeSt
 
     // Side labels for the non-lesson milestones so learners know what's ahead.
     if (!isLesson) {
-      const onRight = left(i) <= 50;
+      const onRight = left(i) <= 50; // node on the left half → label on the right
       const small =
         state === "locked" ? "LOCKED" : state === "soon" ? "COMING SOON" : undefined;
-      // Pushed to the outer edge (away from the winding path) so the label
-      // never sits on top of the line, even when it magnifies on scroll.
+      // Outer-margin placement (NOT scaled on scroll) so the label never sweeps
+      // across the winding path or a neighbouring node.
       node.vlab = {
         bold: s.title,
         small,
@@ -153,5 +175,5 @@ export function buildLearnPath(spine: SpineNode[], states: Record<string, NodeSt
     return node;
   });
 
-  return { done, base, arc, nodes };
+  return { done, base, arc, arc2, nodes };
 }

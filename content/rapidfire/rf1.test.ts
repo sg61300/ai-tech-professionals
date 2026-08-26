@@ -20,6 +20,6 @@ describe("RF1 content", () => {
   });
   it("unlocks the email sim on pass", () => {
     expect(RF1.unlocksSimId).toBe("sim-email");
-    expect(RF1.passThreshold).toBe(6);
+    expect(RF1.passThreshold).toBe(5); // >50% of 8
   });
 });

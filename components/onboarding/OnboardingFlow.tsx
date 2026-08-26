@@ -12,6 +12,7 @@ import {
   type OnboardingStep,
 } from "@/lib/onboarding";
 import { saveOnboarding } from "@/app/onboarding/actions";
+import { trackLockedLevelTapped, trackProfessionInterest } from "@/app/actions/telemetry";
 import { RuneLoader } from "@/components/brand/RuneLoader";
 import { LessonPath, L1_PREVIEW_PATH } from "@/components/brand/LessonPath";
 
@@ -115,18 +116,6 @@ export function OnboardingFlow({
     if (ok) setStep("level");
   }
 
-  // Skip on the avatar screen: proceed with the pre-selected avatar, keeping any
-  // fields already typed (PRD/13 principle: one tap forward, no dead ends).
-  async function skipProfile() {
-    const ok = await persist({
-      avatar_key: avatarKey as never,
-      ...(name.trim() ? { name: name.trim() } : {}),
-      avatar_name: avatarName.trim() ? avatarName.trim() : null,
-      mobile: mobile.trim() ? mobile.trim() : null,
-    });
-    if (ok) setStep("level");
-  }
-
   async function fromLevel() {
     if (levelPhase < 3 || !seniority || aiLevel !== "l1") return;
     setStep("building");
@@ -171,9 +160,7 @@ export function OnboardingFlow({
         <div className="ob-nav">
           <button className="ob-back" disabled aria-hidden />
           <span style={{ flex: 1 }} />
-          <button className="ob-skip" onClick={() => setStep("profession")}>
-            Skip
-          </button>
+          <span className="ob-navspacer" />
         </div>
         <Coach>
           Hi, I&apos;m <b>Rune</b>! Here&apos;s how you&apos;ll go from curious to capable.
@@ -200,6 +187,11 @@ export function OnboardingFlow({
   if (step === "profession") {
     return (
       <main className="ob-screen">
+        {busy && (
+          <div className="ob-busy" aria-live="polite">
+            <RuneLoader size={132} />
+          </div>
+        )}
         <div className="ob-nav">
           <button className="ob-back" onClick={() => setStep("intro")}>
             ←
@@ -219,7 +211,10 @@ export function OnboardingFlow({
               type="button"
               className={`prof${p.value === "hr" ? " sel" : ""}${p.locked ? " lock" : ""}`}
               onClick={() => {
-                if (p.locked) setError(`We're starting with HR and rolling out fast, ${p.label} is coming soon.`);
+                if (p.locked) {
+                  void trackProfessionInterest(p.value, "onboarding"); // metric #9a
+                  setError(`We're starting with HR and rolling out fast, ${p.label} is coming soon.`);
+                }
               }}
             >
               <div className="pe">{p.emoji}</div>
@@ -241,14 +236,17 @@ export function OnboardingFlow({
   if (step === "profile") {
     return (
       <main className="ob-screen">
+        {busy && (
+          <div className="ob-busy" aria-live="polite">
+            <RuneLoader size={132} />
+          </div>
+        )}
         <div className="ob-nav">
           <button className="ob-back" onClick={() => setStep("profession")}>
             ←
           </button>
           <Dots index={1} />
-          <button className="ob-skip" onClick={skipProfile} disabled={busy}>
-            Skip
-          </button>
+          <span className="ob-navspacer" />
         </div>
         <Coach>
           Pick a face for your journey, this shows on your <b>Profile</b> tab.
@@ -327,9 +325,7 @@ export function OnboardingFlow({
             ←
           </button>
           <Dots index={2} />
-          <button className="ob-skip" onClick={skipLevel} disabled={busy}>
-            Skip
-          </button>
+          <span className="ob-navspacer" />
         </div>
         <Coach>
           Last one! This sets your <b>starting path</b>, no wrong answers.
@@ -365,6 +361,7 @@ export function OnboardingFlow({
                 onClick={() => {
                   if (!seniority) return; // pick a role level first
                   if (o.locked) {
+                    void trackLockedLevelTapped(o.value as LockedLevel, "onboarding"); // metric #8
                     setComingSoon(o.value as LockedLevel);
                     setStep("coming-soon");
                   } else {
@@ -387,6 +384,9 @@ export function OnboardingFlow({
             disabled={busy || levelPhase < 3}
           >
             Start Lesson 1 →
+          </button>
+          <button className="ob-skiplink" onClick={skipLevel} disabled={busy}>
+            Skip for now
           </button>
         </div>
       </main>

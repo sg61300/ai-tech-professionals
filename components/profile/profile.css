@@ -41,11 +41,29 @@
 
 /* XP bar */
 .pf-xp { margin-top: 16px; }
+/* Same blink + tap-to-explain as the dashboard XP pill, as a full-width meter. */
+.pf-xp-btn {
+  display: block;
+  width: calc(100% + 12px);
+  border: 0;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  padding: 6px;
+  margin-left: -6px;
+  margin-right: -6px;
+  border-radius: 12px;
+  transition: background 0.15s;
+}
+.pf-xp-btn:hover {
+  background: color-mix(in srgb, var(--violet) 8%, transparent);
+}
 .pf-xp-row {
   display: flex; justify-content: space-between; font-size: 12.5px; font-weight: 700;
   color: var(--foreground); margin-bottom: 6px;
 }
-.pf-bar { height: 8px; border-radius: 999px; background: var(--muted); overflow: hidden; }
+.pf-bar { display: block; height: 8px; border-radius: 999px; background: var(--muted); overflow: hidden; }
 .pf-bar i {
   display: block; height: 100%; border-radius: 999px;
   background: linear-gradient(90deg, var(--teal), var(--violet));
@@ -62,6 +80,13 @@
   font-size: 17px; color: var(--foreground);
 }
 .pf-stat span { font-size: 10px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--muted-foreground); }
+/* Streak tile is tappable → opens the calendar. Affordance on hover/active. */
+.pf-stat-link {
+  display: block; text-decoration: none; cursor: pointer;
+  transition: transform .12s ease, border-color .18s ease, box-shadow .18s ease;
+}
+.pf-stat-link:hover { border-color: var(--teal); box-shadow: 0 4px 12px rgba(13, 40, 36, .1); transform: translateY(-1px); }
+.pf-stat-link:active { transform: translateY(0); }
 
 /* Sections */
 .pf-sec { margin-top: 24px; }
@@ -154,3 +179,143 @@
 }
 
 .pf-foot { margin-top: 22px; text-align: center; font-size: 11px; color: var(--muted-foreground); }
+
+/* ============================ Editable details ============================ */
+.ed-list { margin: 0; }
+.ed-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; transition: background .15s ease; }
+/* Highlight the editable (Name / Mobile) rows on hover + focus, like the pickers.
+   :focus-within only fires on rows with a focusable input, so the static Email
+   row is unaffected. */
+.ed-row:has(.ed-input):hover { background: color-mix(in srgb, var(--teal) 7%, var(--card)); }
+.ed-row:focus-within { background: color-mix(in srgb, var(--teal) 12%, var(--card)); }
+.ed-row dt { color: var(--muted-foreground); font-size: 13px; flex: none; }
+.ed-row dd { margin: 0; }
+.ed-static { font-weight: 700; color: var(--foreground); font-size: 14px; }
+.ed-input {
+  width: 100%; min-width: 9rem; max-width: 15rem; text-align: right;
+  background: transparent; border: 0; border-bottom: 1px dashed transparent;
+  color: var(--foreground); font-weight: 700; font-size: 14px; padding: 2px 0; outline: none;
+}
+.ed-input:focus { border-bottom-color: var(--teal); }
+.ed-input::placeholder { color: var(--muted-foreground); font-weight: 500; }
+/* Whole picker row is a button */
+/* Pickers are <button>s, so the .pf-details > div card rule doesn't reach them;
+   style them as full card rows (white like Name/Email/Mobile) with a hover tint
+   and a pressed highlight. */
+button.ed-pick {
+  width: 100%; border: 0; cursor: pointer; text-align: left; font: inherit;
+  background: var(--card); padding: 12px 14px;
+  transition: background .15s ease;
+}
+button.ed-pick:hover { background: color-mix(in srgb, var(--teal) 9%, var(--card)); }
+button.ed-pick:active { background: color-mix(in srgb, var(--teal) 16%, var(--card)); }
+.ed-pick-v { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; color: var(--foreground); font-size: 14px; }
+.ed-pick-v span { color: var(--muted-foreground); font-size: 17px; line-height: 1; }
+.ed-pick:hover .ed-pick-v { color: var(--teal-deep); }
+.ed-pick:hover .ed-pick-v span { color: var(--teal); }
+
+/* Bottom sheet (org role) + centered modal (leave guard) share the scrim */
+/* Constrained to the centered mobile app-surface column (max 460px) so sheets
+   and modals stay inside the "device" on desktop instead of covering the whole
+   viewport. left/right:0 + margin-inline:auto centers a fixed box without a
+   transform (keeps the child rise/slide animations clean). */
+.ed-scrim {
+  position: fixed; top: 0; bottom: 0; left: 0; right: 0;
+  margin-inline: auto; width: 100%; max-width: 460px;
+  z-index: 60; background: rgba(6, 20, 18, .45);
+  display: flex; align-items: flex-end; justify-content: center;
+  animation: ed-fade .18s ease;
+}
+.ed-scrim-center { align-items: center; padding: 22px; }
+@keyframes ed-fade { from { opacity: 0; } }
+.ed-sheet {
+  width: 100%; max-width: 480px; background: var(--card); border-radius: 20px 20px 0 0;
+  padding: 16px 16px calc(20px + env(safe-area-inset-bottom)); box-shadow: 0 -8px 30px rgba(0,0,0,.22);
+  animation: ed-rise .22s cubic-bezier(.2,.8,.2,1);
+}
+@keyframes ed-rise { from { transform: translateY(30px); opacity: .6; } }
+.ed-sheet-h { font-family: var(--font-poppins), sans-serif; font-weight: 700; font-size: 15px; margin: 2px 2px 12px; }
+.ed-opt {
+  width: 100%; display: flex; align-items: baseline; gap: 10px; text-align: left;
+  background: var(--background); border: 1.5px solid var(--border); border-radius: 12px;
+  padding: 12px 14px; margin-bottom: 8px; cursor: pointer; color: var(--foreground);
+}
+.ed-opt b { font-weight: 700; font-size: 14px; }
+.ed-opt small { color: var(--muted-foreground); font-size: 12px; }
+.ed-opt.sel { border-color: var(--teal); background: color-mix(in srgb, var(--teal) 10%, var(--card)); }
+.ed-opt:hover { border-color: var(--teal); }
+
+/* Full-screen overlay (profession / proficiency) constrained to the centered
+   mobile app-surface column, so it reads as a proper mobile sub-screen instead
+   of covering the whole desktop viewport. */
+.ed-overlay {
+  position: fixed; top: 0; bottom: 0; left: 0; right: 0;
+  margin-inline: auto; width: 100%; max-width: 460px;
+  z-index: 60; background: var(--background);
+  display: flex; flex-direction: column; animation: ed-slide .22s ease;
+  border-inline: 1px solid var(--border);
+}
+@keyframes ed-slide { from { transform: translateX(16px); opacity: .4; } }
+.ed-ov-top {
+  display: flex; align-items: center; gap: 10px; padding: 16px 18px 8px;
+  font-family: var(--font-poppins), sans-serif; font-weight: 700; font-size: 15px;
+}
+.ed-ov-top > span:nth-child(2) { flex: 1; }
+.ed-ov-back {
+  width: 36px; height: 36px; border-radius: 999px; border: 1px solid var(--border);
+  background: var(--card); color: var(--foreground); font-size: 16px; cursor: pointer; flex: none;
+}
+.ed-ov-spacer { width: 36px; flex: none; }
+.ed-ov-body { flex: 1; min-height: 0; overflow-y: auto; padding: 6px 20px 20px; }
+.ed-ov-body .hint { font-size: 12.5px; color: var(--muted-foreground); margin: 0 0 14px; line-height: 1.4; }
+.ed-ov-body .fldnote { font-size: 12px; color: var(--muted-foreground); margin: 12px 2px 0; line-height: 1.4; text-align: center; }
+.ed-levels { flex-direction: column; }
+.ed-levels .s { flex: none; width: 100%; text-align: left; padding: 13px 15px; }
+.ed-levels .s small { display: block; margin-top: 3px; color: var(--muted-foreground); font-weight: 600; white-space: normal; }
+.ed-ov-foot { padding: 12px 20px calc(18px + env(safe-area-inset-bottom)); border-top: 1px solid var(--border); }
+
+/* Single Save bar, a SOLID pinned action bar above the tab bar (portaled to
+   <body>, centered to the 460px app column). Opaque so scrolling content never
+   shows through it. */
+.ed-savebar {
+  position: fixed; left: 0; right: 0; margin-inline: auto; width: 100%; max-width: 460px;
+  bottom: calc(64px + env(safe-area-inset-bottom)); z-index: 58;
+  display: flex; justify-content: center; padding: 12px 16px;
+  background: var(--card); border-top: 1px solid var(--border);
+  box-shadow: 0 -6px 18px rgba(0, 0, 0, .08);
+}
+.ed-save {
+  width: 100%; max-width: 440px; padding: 14px; border: 0; border-radius: 13px;
+  background: var(--teal); color: #fff; font-family: var(--font-poppins), sans-serif; font-weight: 700;
+  font-size: 15px; cursor: pointer; box-shadow: 0 8px 22px rgba(13,148,136,.34); transition: filter .15s, transform .12s;
+}
+.ed-save:hover { filter: brightness(1.05); }
+.ed-save:active { transform: translateY(1px); }
+.ed-save:disabled { opacity: .7; cursor: default; }
+
+/* Leave-guard modal */
+.ed-modal {
+  width: 100%; max-width: 360px; background: var(--card); border-radius: 18px; padding: 22px 20px;
+  box-shadow: 0 20px 50px rgba(0,0,0,.3); text-align: center; animation: ed-rise .2s ease;
+}
+.ed-modal-h { font-family: var(--font-poppins), sans-serif; font-weight: 800; font-size: 18px; margin: 0 0 8px; }
+.ed-modal-p { color: var(--muted-foreground); font-size: 13.5px; line-height: 1.5; margin: 0 0 18px; }
+.ed-modal-actions { display: flex; flex-direction: column; gap: 10px; }
+.ed-modal-primary {
+  width: 100%; padding: 13px; border: 0; border-radius: 12px; background: var(--teal); color: #fff;
+  font-weight: 700; font-size: 14px; cursor: pointer;
+}
+.ed-modal-ghost {
+  width: 100%; padding: 13px; border: 1.5px solid var(--border); border-radius: 12px; background: transparent;
+  color: var(--foreground); font-weight: 700; font-size: 14px; cursor: pointer;
+}
+.ed-modal-ghost:hover { border-color: var(--muted-foreground); }
+.ed-modal-primary:disabled, .ed-modal-ghost:disabled { opacity: .6; cursor: default; }
+
+/* Toast */
+.ed-toast {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: calc(130px + env(safe-area-inset-bottom)); z-index: 65;
+  background: var(--foreground); color: var(--background); font-size: 13px; font-weight: 600;
+  padding: 10px 16px; border-radius: 999px; box-shadow: 0 6px 20px rgba(0,0,0,.25); animation: ed-fade .2s ease;
+}

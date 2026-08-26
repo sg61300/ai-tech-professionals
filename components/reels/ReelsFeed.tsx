@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { REEL_WATCH_MS } from "@/lib/reels";
+import { trackReelsOpened, trackReelsScreenTime } from "@/app/actions/telemetry";
 import "./reels.css";
 
 export type Reel = {
@@ -144,6 +145,34 @@ export function ReelsFeed({
     };
   }, []);
 
+  // Metric #11 (Architecture/12) — reels shallow-engagement. Fire `reels_opened`
+  // on mount (denominator) and the total VISIBLE seconds on this visit when the
+  // user navigates away (numerator input; < 60s total/week = shallow). Only
+  // counts time while the tab is actually visible, so a backgrounded tab doesn't
+  // inflate dwell.
+  useEffect(() => {
+    void trackReelsOpened();
+    let acc = 0;
+    let start: number | null =
+      typeof document !== "undefined" && document.visibilityState === "visible"
+        ? Date.now()
+        : null;
+    const onVis = () => {
+      if (document.visibilityState === "visible") {
+        start = Date.now();
+      } else if (start != null) {
+        acc += Date.now() - start;
+        start = null;
+      }
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      document.removeEventListener("visibilitychange", onVis);
+      if (start != null) acc += Date.now() - start;
+      void trackReelsScreenTime(acc / 1000);
+    };
+  }, []);
+
   const pauseActive = () => cmd("pauseVideo");
 
   // Reels autoplay muted (browser policy); this is the in-app sound toggle that
@@ -213,7 +242,7 @@ export function ReelsFeed({
     if (reported.has(reel.id)) return;
     setReported((s) => new Set(s).add(reel.id));
     await onToggle(reel.id, "report", reason);
-    flash("Thanks — flagged for review");
+    flash("Thanks, flagged for review");
   };
 
   if (reels.length === 0) {
@@ -224,7 +253,7 @@ export function ReelsFeed({
         </span>
         <h2>You&apos;re all caught up</h2>
         <p>
-          Fresh AI-in-HR reels drop daily — come back tomorrow (your streak will thank you).
+          Fresh AI-in-HR reels drop daily, come back tomorrow (your streak will thank you).
         </p>
       </div>
     );
@@ -338,12 +367,6 @@ export function ReelsFeed({
           </section>
         );
       })}
-      </div>
-
-      <div className="reel-dots" aria-hidden="true">
-        {reels.map((r, i) => (
-          <span key={r.id} className={i === active ? "on" : ""} />
-        ))}
       </div>
 
       {reportFor && (

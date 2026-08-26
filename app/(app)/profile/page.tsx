@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { displayName } from "@/lib/display";
@@ -6,6 +7,10 @@ import { tasteSim, emailSim, systemSim } from "@/content";
 import { TabBar } from "@/components/app/TabBar";
 import { SignOutButton } from "@/components/auth/SignOutButton";
 import { SavedArtifacts, type Artifact } from "@/components/profile/SavedArtifacts";
+import { XpProgress } from "@/components/brand/XpInfo";
+import { EditableDetails } from "@/components/profile/EditableDetails";
+import { seniorityLabel, professionLabel } from "@/lib/profile/labels";
+import { reelsHasNew } from "@/lib/reels/newness";
 import "@/components/profile/profile.css";
 
 export const dynamic = "force-dynamic";
@@ -43,6 +48,8 @@ export default async function ProfilePage() {
       .order("created_at", { ascending: false }),
   ]);
 
+  const reelsNew = await reelsHasNew(supabase, user.id);
+
   const name = displayName(profile ?? {});
   const xp = profile?.xp ?? 0;
   const streak = profile?.streak_count ?? 0;
@@ -62,7 +69,6 @@ export default async function ProfilePage() {
   else if (best >= 3) badges.push({ name: "On a Roll", emoji: "🔥" });
 
   const artifacts = (arts ?? []) as Artifact[];
-  const detail = (v?: string | null) => (v && v.trim() ? v : "—");
 
   return (
     <div className="lh">
@@ -80,26 +86,18 @@ export default async function ProfilePage() {
           <div className="pf-id">
             <h1 className="pf-name">{name}</h1>
             <p className="pf-role">
-              {detail(profile?.seniority)} · {detail(profile?.profession)}
+              {seniorityLabel(profile?.seniority) ?? "-"} · {professionLabel(profile?.profession) ?? "-"}
             </p>
           </div>
         </header>
 
-        <div className="pf-xp">
-          <div className="pf-xp-row">
-            <span>Level {level}</span>
-            <span>{xp.toLocaleString()} XP</span>
-          </div>
-          <div className="pf-bar">
-            <i style={{ width: `${Math.round(progress * 100)}%` }} />
-          </div>
-        </div>
+        <XpProgress level={level} xp={xp} progress={progress} />
 
         <div className="pf-stats">
-          <div className="pf-stat">
+          <Link href="/learn/streak?from=profile" className="pf-stat pf-stat-link" aria-label="Open streak calendar">
             <b>🔥 {streak}</b>
             <span>Streak</span>
-          </div>
+          </Link>
           <div className="pf-stat">
             <b>{lessonsDone}</b>
             <span>Lessons</span>
@@ -131,42 +129,25 @@ export default async function ProfilePage() {
           </section>
         )}
 
-        {/* Details */}
+        {/* Details (editable — grilled design, Session 14) */}
         <section className="pf-sec">
           <h2 className="pf-sec-h">Your details</h2>
-          <dl className="pf-details">
-            <div>
-              <dt>Name</dt>
-              <dd>{detail(profile?.name)}</dd>
-            </div>
-            <div>
-              <dt>Email</dt>
-              <dd>{user.email}</dd>
-            </div>
-            <div>
-              <dt>Mobile</dt>
-              <dd>{detail(profile?.mobile)}</dd>
-            </div>
-            <div>
-              <dt>Organization role</dt>
-              <dd>{detail(profile?.seniority)}</dd>
-            </div>
-            <div>
-              <dt>Profession</dt>
-              <dd>{detail(profile?.profession)}</dd>
-            </div>
-            <div>
-              <dt>AI proficiency</dt>
-              <dd>{detail(profile?.ai_proficiency)}</dd>
-            </div>
-          </dl>
-          <p className="pf-note">Editing your details is coming soon.</p>
+          <EditableDetails
+            initial={{
+              name: profile?.name ?? null,
+              email: user.email ?? null,
+              mobile: profile?.mobile ?? null,
+              seniority: profile?.seniority ?? null,
+              profession: profile?.profession ?? null,
+              ai_proficiency: profile?.ai_proficiency ?? null,
+            }}
+          />
         </section>
 
         {/* Second brain */}
         <section className="pf-sec">
           <h2 className="pf-sec-h">🧠 Your second brain</h2>
-          <p className="pf-sec-sub">Your greatest hits. Steal from yourself — that&apos;s the whole point.</p>
+          <p className="pf-sec-sub">Your greatest hits. Steal from yourself. That&apos;s the whole point.</p>
           <SavedArtifacts items={artifacts} />
         </section>
 
@@ -185,7 +166,7 @@ export default async function ProfilePage() {
             <div className="pf-row col">
               <span>Privacy</span>
               <span className="pf-row-v">
-                Practice on sample data — never real employee records.
+                Practice on sample data, never real employee records.
               </span>
             </div>
           </div>
@@ -197,7 +178,7 @@ export default async function ProfilePage() {
         <p className="pf-foot">AI &amp; Tech for Professionals · Level 1</p>
       </main>
 
-      <TabBar avatarKey={profile?.avatar_key} />
+      <TabBar avatarKey={profile?.avatar_key} reelsNew={reelsNew} />
     </div>
   );
 }

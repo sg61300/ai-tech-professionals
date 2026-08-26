@@ -1,7 +1,7 @@
 import type { RapidFireSet } from "@/content/schema";
 
 /**
- * RF1 — Foundations rapid-fire (PRD/11). 8 tap-only questions covering
+ * RF1, Foundations rapid-fire (PRD/11). 8 tap-only questions covering
  * Lessons 1–5, including decision-maker/grill-style judgment beats. Passing
  * (6/8) unlocks the first full sim (Inbox Tamer). Fresh scenarios, not copies
  * of the lesson exercises. Voice: fast, fun, encouraging.
@@ -13,15 +13,15 @@ import type { RapidFireSet } from "@/content/schema";
 export const RF1: RapidFireSet = {
   id: "rf1",
   title: "Rapid Fire · Foundations",
-  intro: "Five lessons down. Let's see what stuck — 8 questions, tap fast, don't overthink it. Go!",
-  passThreshold: 6,
+  intro: "Five lessons down. Let's see what stuck, 8 questions, tap fast, don't overthink it. Go!",
+  passThreshold: 5,
   unlocksSimId: "sim-email",
   items: [
     {
       id: "rf1-q1",
       kind: "mcq",
       prompt:
-        "AI confidently states your company's leave policy allows 30 days — but you never gave it the policy. What do you do?",
+        "AI confidently states your company's leave policy allows 30 days, but you never gave it the policy. What do you do?",
       options: [
         "Trust it, it sounded sure",
         "Verify against the actual policy before using it",
@@ -29,7 +29,7 @@ export const RF1: RapidFireSet = {
         "Ask AI if it's really sure",
       ],
       correct: 1,
-      teach: "Without your data, AI guesses. Confidence isn't proof — verify facts.",
+      teach: "Without your data, AI guesses. Confidence isn't proof, verify facts.",
       grillStyle: "decision-maker",
     },
     {
@@ -38,7 +38,7 @@ export const RF1: RapidFireSet = {
       prompt: "True or false: AI can see your company's private HRMS data by default.",
       options: ["True", "False"],
       correct: 1,
-      teach: "False. It only knows what you paste in — and public tools shouldn't get confidential data.",
+      teach: "False. It only knows what you paste in, and public tools shouldn't get confidential data.",
     },
     {
       id: "rf1-q3",
@@ -83,7 +83,7 @@ export const RF1: RapidFireSet = {
       prompt: "A long chat starts giving off-topic answers. Why, and what's the fix?",
       options: [
         "It's broken; restart your laptop",
-        "The context window overflowed — start a fresh chat or summarize the key points",
+        "The context window overflowed, start a fresh chat or summarize the key points",
         "Type louder",
         "Wait 10 minutes",
       ],
@@ -104,7 +104,7 @@ export const RF1: RapidFireSet = {
       kind: "mcq",
       prompt: "AI's first draft of a sensitive exit email is accurate but cold. Best next step?",
       options: [
-        "Send it — facts are right",
+        "Send it, facts are right",
         "One targeted follow-up to warm the tone, then read it yourself before sending",
         "Rewrite the whole thing from scratch",
         "Ask AI if it's happy with it",

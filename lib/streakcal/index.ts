@@ -6,7 +6,7 @@
  * so DST / tz seams can't corrupt which cell a day lands in.
  */
 
-export type DayState = "done" | "miss" | "today" | "future" | "prejoin";
+export type DayState = "done" | "miss" | "saved" | "today" | "future" | "prejoin";
 
 export type DayCell =
   | { kind: "empty" }
@@ -53,10 +53,13 @@ export type MonthGridInput = {
   today: string;
   /** Account join civil date ('YYYY-MM-DD'); days before it aren't "missed". */
   joinDate: string;
+  /** Civil dates ('YYYY-MM-DD') rescued via streak insurance (shown as "saved"). */
+  savedDates?: ReadonlySet<string>;
 };
 
 export function buildMonthGrid(input: MonthGridInput): MonthGrid {
   const { year, month, activeDates, today, joinDate } = input;
+  const savedDates = input.savedDates ?? new Set<string>();
   const total = daysInMonth(year, month);
   const lead = firstWeekdayMondayFirst(year, month);
 
@@ -70,6 +73,7 @@ export function buildMonthGrid(input: MonthGridInput): MonthGrid {
     if (date > today) state = "future";
     else if (date === today) state = "today";
     else if (active) state = "done";
+    else if (savedDates.has(date)) state = "saved"; // missed, but rescued with XP
     else if (date < joinDate) state = "prejoin";
     else state = "miss";
     cells.push({ kind: "day", date, dayNum: day, state, active });

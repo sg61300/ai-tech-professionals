@@ -24,9 +24,12 @@ export async function captureServer(
   distinctId: string,
   event: EventName,
   properties?: EventProps,
+  /** Person properties to `$set` on this user (e.g. preferred_theme). */
+  personSet?: EventProps,
 ) {
   const c = client();
   if (!c) return;
-  c.capture({ distinctId, event, properties });
+  const props = personSet ? { ...properties, $set: personSet } : properties;
+  c.capture({ distinctId, event, properties: props });
   await c.flush().catch(() => {});
 }

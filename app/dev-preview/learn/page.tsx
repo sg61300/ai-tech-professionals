@@ -1,10 +1,24 @@
 "use client";
 
 // TEMP dev-only visual QA for the Learn home layout (stub data, no auth/DB).
-import { LessonPath, L1_PREVIEW_PATH } from "@/components/brand/LessonPath";
+// Now renders the REAL 18-node L1_SPINE via buildLearnPath so path DENSITY
+// matches production (S15: full Level 1). A slider fakes how many spine nodes
+// are "done" to inspect the current/done/locked spread.
+import { useState } from "react";
+import { L1_SPINE } from "@/content";
+import { computeNodeStates } from "@/lib/progression";
+import { LessonPath } from "@/components/brand/LessonPath";
+import { buildLearnPath } from "@/components/brand/learnPath";
 import { TabBar } from "@/components/app/TabBar";
 
 export default function LearnPreview() {
+  // Mark the first N non-lock spine nodes as completed.
+  const [doneCount, setDoneCount] = useState(6);
+  const completable = L1_SPINE.filter((n) => n.kind !== "lock");
+  const completed = new Set(completable.slice(0, doneCount).map((n) => n.id));
+  const states = computeNodeStates(L1_SPINE, completed);
+  const pathData = buildLearnPath(L1_SPINE, states);
+
   return (
     <div className="lh">
       <header className="topbar">
@@ -32,7 +46,28 @@ export default function LearnPreview() {
           <span className="plab">Your path</span>
           <span className="punit">Level 1 · HR &amp; AI</span>
         </div>
-        <LessonPath data={L1_PREVIEW_PATH} />
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            fontSize: 11,
+            padding: "0 4px 8px",
+            color: "#888",
+          }}
+        >
+          <span>done: {doneCount}</span>
+          <input
+            type="range"
+            min={0}
+            max={completable.length}
+            value={doneCount}
+            onChange={(e) => setDoneCount(Number(e.target.value))}
+            style={{ flex: 1 }}
+          />
+          <span>{L1_SPINE.length} nodes</span>
+        </div>
+        <LessonPath data={pathData} />
       </main>
       <TabBar avatarKey="fox" />
     </div>

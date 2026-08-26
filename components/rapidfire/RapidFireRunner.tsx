@@ -13,6 +13,7 @@ import {
   completeRapidFire,
   type CompleteRapidFireResult,
 } from "@/app/(app)/learn/rf/[id]/actions";
+import { RuneMascot } from "@/components/brand/RuneMascot";
 import "./rapidfire.css";
 
 /**
@@ -60,6 +61,10 @@ export function RapidFireRunner({
   const startRef = useRef<number>(0);
   const rafRef = useRef<number | null>(null);
   const reduceMotion = useRef(false);
+  // Synchronous guard so a question is answered exactly once (click vs. timeout
+  // race, and React StrictMode's double-invoked updaters). `locked` state still
+  // drives the reveal UI; this ref is the source of truth for "already answered".
+  const answeredRef = useRef(false);
 
   useEffect(() => {
     reduceMotion.current =
@@ -74,14 +79,13 @@ export function RapidFireRunner({
   // --- Answer handling ------------------------------------------------------
   const answer = useCallback(
     (choice: number | null) => {
-      setLocked((wasLocked) => {
-        if (wasLocked) return true;
-        const elapsed = choice === null ? RF_CONFIG.TIMER_MS : Date.now() - startRef.current;
-        const correct = choice !== null && choice === item.correct;
-        setPicked(choice);
-        setAnswers((prev) => [...prev, { correct, elapsedMs: elapsed }]);
-        return true;
-      });
+      if (answeredRef.current) return; // already answered (race / StrictMode)
+      answeredRef.current = true;
+      const elapsed = choice === null ? RF_CONFIG.TIMER_MS : Date.now() - startRef.current;
+      const correct = choice !== null && choice === item.correct;
+      setPicked(choice);
+      setLocked(true);
+      setAnswers((prev) => [...prev, { correct, elapsedMs: elapsed }]);
     },
     [item],
   );
@@ -128,6 +132,7 @@ export function RapidFireRunner({
     setQPos((p) => p + 1);
     setPicked(null);
     setLocked(false);
+    answeredRef.current = false;
   }
 
   function start() {
@@ -139,6 +144,7 @@ export function RapidFireRunner({
     setQPos(0);
     setPicked(null);
     setLocked(false);
+    answeredRef.current = false;
     setAnswers([]);
     setResult(null);
     setAttempt((a) => a + 1);
@@ -199,16 +205,17 @@ export function RapidFireRunner({
             {qPos + 1} / {order.length}
           </span>
           <span className={`rf-combo${running.combo >= 3 ? " on" : ""}`}>
-            {running.combo >= 2 ? `🔥 ${running.combo}` : ""}
+            {running.combo >= 2 ? `💥 ${running.combo}` : ""}
           </span>
         </header>
 
-        <div className={`rf-timer${urgent ? " urgent" : ""}${reduceMotion.current ? " reduced" : ""}`}>
-          {reduceMotion.current ? (
-            <span className="rf-timer-num">{revealed ? "" : `${seconds}s`}</span>
-          ) : (
-            <i style={{ width: `${revealed ? 100 : timerPct}%` }} />
-          )}
+        <div className="rf-timer-row">
+          <span className={`rf-secs${urgent ? " urgent" : ""}`} aria-live="polite">
+            {revealed ? "✓" : `${seconds}s`}
+          </span>
+          <div className={`rf-timer${urgent ? " urgent" : ""}${reduceMotion.current ? " reduced" : ""}`}>
+            {!reduceMotion.current && <i style={{ width: `${revealed ? 100 : timerPct}%` }} />}
+          </div>
         </div>
 
         <main className="rf-play">
@@ -269,9 +276,8 @@ export function RapidFireRunner({
       <main className={`rf-result${passed ? " pass" : " fail"}`}>
         {passed ? (
           <>
-            <div className="rf-rune-hop">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/mascot/rune-hero-clean.png" alt="Rune celebrating" />
+            <div className="rune-cel">
+              <RuneMascot state="celebrate" spriteSrc="/mascot/rune-hero-clean.png" dimensions={168} />
             </div>
             <h1 className="rf-h1">🔥 Rapid Fire cleared!</h1>
             <div className="rf-tally">
@@ -291,11 +297,11 @@ export function RapidFireRunner({
 
             {result && result.ok ? (
               result.alreadyDone ? (
-                <p className="rf-sub">Already cleared before — sharp as ever.</p>
+                <p className="rf-sub">Already cleared before, sharp as ever.</p>
               ) : (
                 <div className="rf-rewards">
                   <span className="rf-reward xp">+{result.xpAwarded} XP</span>
-                  {result.leveledUp && <span className="rf-reward lvl">Level {result.newLevel}!</span>}
+                  {result.leveledUp && <span className="rf-reward lvl">Tier {result.newLevel}!</span>}
                   {result.streakAdvanced && (
                     <span className="rf-reward streak">🔥 {result.streak}-day streak</span>
                   )}
@@ -310,7 +316,7 @@ export function RapidFireRunner({
                 <span className="rf-unlock-ic">📧</span>
                 <div>
                   <b>New unlocked: your first full simulation</b>
-                  <small>Head back to the path — the AI Hub is live.</small>
+                  <small>Head back to the path. The AI Hub is live.</small>
                 </div>
               </div>
             )}
@@ -321,14 +327,14 @@ export function RapidFireRunner({
           </>
         ) : (
           <>
-            <div className="rf-bolt dim" aria-hidden>
-              ⚡
+            <div className="rune-cel">
+              <RuneMascot state="grill" spriteSrc="/mascot/rune-hero-clean.png" dimensions={150} />
             </div>
             <h1 className="rf-h1">
-              {running.correct}/{order.length} — so close
+              {running.correct}/{order.length}, so close
             </h1>
             <p className="rf-sub">
-              You need {set.passThreshold} to clear it. Round {attempt + 1} — you&apos;ve got this.
+              You need {set.passThreshold} to clear it. Round {attempt + 1}, you&apos;ve got this.
               No hearts, no penalty, questions reshuffle.
             </p>
             <button className="rf-cta" onClick={retry}>

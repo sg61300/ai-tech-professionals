@@ -82,7 +82,7 @@ export async function completeSystemSim(input: unknown): Promise<SystemCompleteR
     .from("saved_artifacts")
     .insert({
       user_id: user.id,
-      title: `${sample.label} — X-ray`,
+      title: `${sample.label} X-ray`,
       source_sim: systemSim.id,
       body: buildArtifactBody(sample),
     })

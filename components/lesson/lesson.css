@@ -54,6 +54,13 @@
 }
 .lr-body::-webkit-scrollbar { display: none; }
 
+/* Rune grills the learner during the grill-me beat: challenges on entry,
+   re-grills on a wrong pick, celebrates when they get it. */
+.lr-grill-rune {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 2px;
+}
 .lr-kicker {
   font-size: 12px;
   font-weight: 700;
@@ -115,6 +122,14 @@
 .lr-callout.info {
   border-color: color-mix(in srgb, var(--teal) 45%, var(--border));
   background: color-mix(in srgb, var(--teal) 10%, var(--card));
+}
+/* Seniority-flavored example ("for your level"): a coral-accented, personalized
+   note. Purely additive — only rendered when the lesson authored a line for the
+   learner's org seniority. */
+.lr-callout.flavor {
+  border-style: dashed;
+  border-color: color-mix(in srgb, var(--coral) 55%, var(--border));
+  background: color-mix(in srgb, var(--coral) 9%, var(--card));
 }
 
 .lr-quote {

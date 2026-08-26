@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import type { Lesson } from "@/content/schema";
 import { completeLesson, type CompleteLessonResult } from "@/app/(app)/learn/lesson/[id]/actions";
+import { RuneMascot } from "@/components/brand/RuneMascot";
 import "./lesson.css";
 
 /**
@@ -40,9 +41,12 @@ function Md({ children }: { children: string }): ReactNode {
 
 export function LessonRunner({
   lesson,
+  flavorNote = null,
   completeAction = completeLesson,
 }: {
   lesson: Lesson;
+  /** Per-seniority example line for THIS learner (see lib/flavor). Null = show none. */
+  flavorNote?: string | null;
   /** Injectable seam so the dev-preview harness can stub the DB write (mirrors OnboardingFlow). */
   completeAction?: (lessonId: string, correct: boolean) => Promise<CompleteLessonResult>;
 }) {
@@ -79,7 +83,7 @@ export function LessonRunner({
   }
 
   function goBack() {
-    if (phase === "read") router.push("/learn");
+    if (phase === "read" || phase === "done") router.push("/learn");
     else if (phase === "exercise") setPhase("read");
     else if (phase === "grill") setPhase("exercise");
   }
@@ -95,19 +99,30 @@ export function LessonRunner({
     ? Math.max(0, lesson.grillBeat.branches.findIndex((b) => b.correct))
     : 0;
   const grillSolved = grillPicked === grillCorrect;
+  // The auto-graded exercise must be answered CORRECTLY to advance (retry on a
+  // wrong pick, exactly like the grill beat) — so a completed lesson always
+  // means the check was passed, and its flat XP is honestly earned. Non-mcq
+  // kinds (order/fill, unused in L1) fall back to "answered".
+  const exerciseSolved = lesson.exercise.kind === "mcq" ? correct : picked !== null;
   const canContinue =
-    phase === "read" ? true : phase === "exercise" ? picked !== null : grillSolved;
+    phase === "read" ? true : phase === "exercise" ? exerciseSolved : grillSolved;
 
   return (
     <div className="lr">
-      <header className="lr-top">
-        <button className="lr-icon" onClick={goBack} aria-label="Back">
-          ←
-        </button>
-        <div className="lr-bar">
-          <i style={{ width: `${Math.round(progress * 100)}%` }} />
-        </div>
-      </header>
+      {/* Header hidden entirely on the completion screen — no back-arrow (XP is
+          banked; avoid re-entering a finished lesson by mis-tapping back) and no
+          progress bar (the lesson is 100% done, so it adds nothing). The only
+          exit is the explicit "Back to your path" CTA below. */}
+      {phase !== "done" && (
+        <header className="lr-top">
+          <button className="lr-icon" onClick={goBack} aria-label="Back">
+            ←
+          </button>
+          <div className="lr-bar">
+            <i style={{ width: `${Math.round(progress * 100)}%` }} />
+          </div>
+        </header>
+      )}
 
       <main className="lr-body">
         {phase === "read" && (
@@ -139,6 +154,14 @@ export function LessonRunner({
                 <img key={i} className="lr-img" src={b.src} alt={b.alt} />
               ),
             )}
+            {flavorNote && (
+              <div className="lr-callout flavor">
+                <span className="lr-callout-ic">🎯</span>
+                <p className="lr-md">
+                  <Md>{flavorNote}</Md>
+                </p>
+              </div>
+            )}
           </section>
         )}
 
@@ -150,24 +173,24 @@ export function LessonRunner({
               {optionList(lesson).map((opt, i) => {
                 const chosen = picked === i;
                 const isAnswer = i === answerIndex;
-                const revealed = picked !== null;
-                const cls = revealed
-                  ? isAnswer
+                // Reveal the ✓ only once solved; a wrong pick is marked ✕ but the
+                // options stay tappable so the learner can try again.
+                const cls =
+                  exerciseSolved && isAnswer
                     ? "right"
-                    : chosen
+                    : chosen && !isAnswer
                       ? "wrong"
-                      : "dim"
-                  : "";
+                      : "";
                 return (
                   <button
                     key={i}
                     className={`lr-opt ${cls}`}
-                    disabled={revealed}
+                    disabled={exerciseSolved}
                     onClick={() => setPicked(i)}
                   >
                     {opt}
-                    {revealed && isAnswer && <span className="lr-tick">✓</span>}
-                    {revealed && chosen && !isAnswer && <span className="lr-tick">✕</span>}
+                    {exerciseSolved && isAnswer && <span className="lr-tick">✓</span>}
+                    {chosen && !isAnswer && <span className="lr-tick">✕</span>}
                   </button>
                 );
               })}
@@ -182,6 +205,13 @@ export function LessonRunner({
 
         {phase === "grill" && lesson.grillBeat && (
           <section className="lr-grill">
+            <div className="lr-grill-rune">
+              <RuneMascot
+                state={grillSolved ? "celebrate" : "grill"}
+                spriteSrc="/mascot/rune-hero-clean.png"
+                dimensions={104}
+              />
+            </div>
             <p className="lr-kicker">🔥 Grill me</p>
             <h2 className="lr-q">{lesson.grillBeat.prompt}</h2>
             <div className="lr-opts">
@@ -214,9 +244,8 @@ export function LessonRunner({
 
         {phase === "done" && (
           <section className="lr-done">
-            <div className="lr-rune-hop">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/mascot/rune-hero-clean.png" alt="Rune celebrating" />
+            <div className="rune-cel">
+              <RuneMascot state="celebrate" spriteSrc="/mascot/rune-hero-clean.png" dimensions={172} />
             </div>
             <h1 className="lr-done-title">Lesson complete!</h1>
             {result && result.ok ? (
@@ -226,7 +255,7 @@ export function LessonRunner({
                 ) : (
                   <div className="lr-rewards">
                     <span className="lr-reward xp">+{result.xpAwarded} XP</span>
-                    {result.leveledUp && <span className="lr-reward lvl">Level {result.newLevel}!</span>}
+                    {result.leveledUp && <span className="lr-reward lvl">Tier {result.newLevel}!</span>}
                     {result.streakAdvanced && (
                       <span className="lr-reward streak">🔥 {result.streak}-day streak</span>
                     )}

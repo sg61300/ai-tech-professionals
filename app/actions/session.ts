@@ -15,7 +15,11 @@ import { EVENTS } from "@/lib/analytics/events";
  *                             (north-star part 2)
  * No-ops for signed-out visitors and when the PostHog key is unset.
  */
-export async function recordSession(): Promise<void> {
+export async function recordSession(
+  /** Resolved theme at session start — $set as `preferred_theme` so users who
+   *  never toggle are still counted for metric #10 (Architecture/12). */
+  theme?: "dark" | "light",
+): Promise<void> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -33,7 +37,12 @@ export async function recordSession(): Promise<void> {
   const today = civilDateInTz(new Date(), tz);
   const lastSeen = (profile.last_seen_date as string | null) ?? null;
 
-  await captureServer(user.id, EVENTS.SESSION_START, {});
+  await captureServer(
+    user.id,
+    EVENTS.SESSION_START,
+    {},
+    theme ? { preferred_theme: theme } : undefined,
+  );
 
   if (lastSeen === null) {
     // First authenticated session ≈ signup complete (funnel entry point).

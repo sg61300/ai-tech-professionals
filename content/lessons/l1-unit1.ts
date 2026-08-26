@@ -129,6 +129,13 @@ export const L1_UNIT1: Lesson[] = [
         },
       ],
     },
+    flavor: {
+      entry:
+        "For your level: try the 4-part skeleton on a real task this week, like drafting an interview-invite email.",
+      mid: "For your level: use it to brief AI on a policy note your team will send, spelling out audience and tone up front.",
+      senior:
+        "For your level: set the Role and Context once for a recurring comms task, then hand the skeleton to your team as a standard.",
+    },
   },
   {
     id: "l3",

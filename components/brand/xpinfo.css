@@ -1,0 +1,134 @@
+/* Topbar XP pill: keeps the .xp look, adds a clickable affordance + a gentle
+   pulse hinting it opens the XP explainer. */
+button.xp {
+  border: 0;
+  background: none;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted-foreground);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  padding: 3px 8px;
+  border-radius: 999px;
+  transition: background 0.15s, color 0.15s;
+}
+button.xp:hover {
+  color: var(--foreground);
+  background: color-mix(in srgb, var(--violet) 12%, transparent);
+}
+.xp-pulse {
+  animation: xp-pulse 2.4s ease-in-out infinite;
+}
+@keyframes xp-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--violet) 34%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 5px color-mix(in srgb, var(--violet) 0%, transparent);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .xp-pulse {
+    animation: none;
+  }
+}
+
+/* Explainer dialog (portaled to body). */
+.xpi-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: color-mix(in srgb, var(--foreground) 42%, transparent);
+  backdrop-filter: blur(2px);
+}
+.xpi-card {
+  width: 100%;
+  max-width: 340px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 18px 18px 16px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+}
+.xpi-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.xpi-ic {
+  font-size: 20px;
+}
+.xpi-title {
+  font-family: var(--font-poppins), sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  margin: 0;
+  flex: 1;
+  color: var(--foreground);
+}
+.xpi-x {
+  border: 0;
+  background: none;
+  cursor: pointer;
+  color: var(--muted-foreground);
+  font-size: 15px;
+  line-height: 1;
+  padding: 4px;
+}
+.xpi-x:hover {
+  color: var(--foreground);
+}
+.xpi-lead {
+  font-size: 13px;
+  color: var(--foreground);
+  margin: 0 0 10px;
+}
+.xpi-lead b {
+  color: var(--violet);
+}
+.xpi-list {
+  list-style: none;
+  margin: 0 0 14px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.xpi-list li {
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--muted-foreground);
+  padding-left: 18px;
+  position: relative;
+}
+.xpi-list li::before {
+  content: "⭐";
+  position: absolute;
+  left: 0;
+  font-size: 10px;
+  top: 2px;
+}
+.xpi-list li b {
+  color: var(--foreground);
+}
+.xpi-ok {
+  width: 100%;
+  padding: 10px;
+  border: 0;
+  border-radius: 12px;
+  font-family: var(--font-poppins), sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  color: #fff;
+  background: linear-gradient(135deg, var(--teal), var(--violet));
+  cursor: pointer;
+}
+.xpi-ok:hover {
+  filter: brightness(1.05);
+}

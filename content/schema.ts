@@ -57,6 +57,28 @@ export const GrillBeatSchema = z.object({
 });
 export type GrillBeat = z.infer<typeof GrillBeatSchema>;
 
+// --- Seniority flavoring (settled decision: "org seniority only flavors
+// examples") --------------------------------------------------------------
+// The org-seniority a learner picked in onboarding. Lessons may carry an
+// OPTIONAL per-seniority example line (`flavor`) that the runner shows as an
+// extra "for your level" note. It is purely additive: absent → nothing shown,
+// so the path is identical for everyone regardless of seniority. Authoring is
+// light (only a few lessons carry variants for MVP); the selector lives in
+// `lib/flavor`.
+export const SENIORITIES = ["entry", "mid", "senior"] as const;
+export const SenioritySchema = z.enum(SENIORITIES);
+export type Seniority = z.infer<typeof SenioritySchema>;
+
+// Each key optional so a lesson can flavor for one, some, or all levels.
+export const FlavorSchema = z
+  .object({
+    entry: z.string().min(1),
+    mid: z.string().min(1),
+    senior: z.string().min(1),
+  })
+  .partial();
+export type Flavor = z.infer<typeof FlavorSchema>;
+
 // --- Lesson -----------------------------------------------------------------
 export const LessonSchema = z.object({
   id: z.string().min(1),
@@ -65,6 +87,8 @@ export const LessonSchema = z.object({
   blocks: z.array(BlockSchema).min(1),
   exercise: ExerciseSchema,
   grillBeat: GrillBeatSchema.optional(),
+  /** Optional per-seniority example line (see FlavorSchema). */
+  flavor: FlavorSchema.optional(),
 });
 export type Lesson = z.infer<typeof LessonSchema>;
 

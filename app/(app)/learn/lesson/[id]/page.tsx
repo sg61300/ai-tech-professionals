@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getLesson, L1_SPINE } from "@/content";
 import { isUnlocked } from "@/lib/progression";
+import { flavorFor } from "@/lib/flavor";
 import { LessonRunner } from "@/components/lesson/LessonRunner";
 
 /**
@@ -23,10 +24,14 @@ export default async function LessonPage({ params }: { params: Promise<{ id: str
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("onboarding_complete")
+    .select("onboarding_complete, seniority")
     .eq("id", user.id)
     .single();
   if (!profile?.onboarding_complete) redirect("/onboarding");
+
+  // Seniority only flavors examples (settled decision): pick this learner's
+  // per-level example line, if the lesson authored one for their level.
+  const flavorNote = flavorFor(lesson.flavor, profile.seniority);
 
   // Enforce unlock order server-side.
   const { data: rows } = await supabase
@@ -39,5 +44,5 @@ export default async function LessonPage({ params }: { params: Promise<{ id: str
   const node = L1_SPINE.find((n) => n.id === id);
   if (node && !isUnlocked(node, completed)) redirect("/learn");
 
-  return <LessonRunner lesson={lesson} />;
+  return <LessonRunner lesson={lesson} flavorNote={flavorNote} />;
 }

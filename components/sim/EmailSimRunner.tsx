@@ -10,6 +10,7 @@ import {
   gradeRulebook,
 } from "@/lib/emailsim";
 import { RuneLoader } from "@/components/brand/RuneLoader";
+import { RuneMascot } from "@/components/brand/RuneMascot";
 import {
   narrateSort,
   completeEmailSim,
@@ -184,7 +185,7 @@ export function EmailSimRunner({
         <main className="es-body">
           <p className="es-kicker">Your rulebook</p>
           <div className="es-rulebook">
-            {rules.length === 0 && <p className="es-muted">No rules yet — add your first below.</p>}
+            {rules.length === 0 && <p className="es-muted">No rules yet, add your first below.</p>}
             {rules.map((r) => {
               const c = sim.conditions.find((x) => x.id === r.conditionId);
               const b = bucketByKey(r.bucketKey);
@@ -299,11 +300,11 @@ export function EmailSimRunner({
                       <div key={s.email.id} className="es-card">
                         <span className="es-card-sub">{s.email.subject}</span>
                         <span className="es-card-reason">
-                          {s.matched ? s.reason : "no rule — flagged"}
+                          {s.matched ? s.reason : "no rule, flagged"}
                         </span>
                       </div>
                     ))}
-                    {grouped[b.key].length === 0 && <span className="es-empty">—</span>}
+                    {grouped[b.key].length === 0 && <span className="es-empty">-</span>}
                   </div>
                 ))}
               </div>
@@ -401,22 +402,22 @@ export function EmailSimRunner({
   // ========================================================================== done
   return (
     <div className="es">
-      <main className="es-center es-done">
-        <div className="es-rune-hop">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/mascot/rune-hero-clean.png" alt="Rune celebrating" />
+      <main className="es-body">
+        <section className="es-done">
+        <div className="rune-cel">
+          <RuneMascot state="celebrate" spriteSrc="/mascot/rune-hero-clean.png" dimensions={168} />
         </div>
         <h1 className="es-h1">Inbox Tamer! 🎉</h1>
         <p className="es-copy">{sim.celebration.copy}</p>
 
         {result && result.ok ? (
           result.alreadyDone ? (
-            <p className="es-muted">Already completed — your rulebook is saved in your second brain.</p>
+            <p className="es-muted">Already completed. Your rulebook is saved in your second brain.</p>
           ) : (
             <div className="es-rewards">
               <span className="es-reward xp">+{result.xpAwarded} XP</span>
               <span className="es-reward badge">🏆 {result.badge}</span>
-              {result.leveledUp && <span className="es-reward lvl">Level {result.newLevel}!</span>}
+              {result.leveledUp && <span className="es-reward lvl">Tier {result.newLevel}!</span>}
               {result.streakAdvanced && (
                 <span className="es-reward streak">🔥 {result.streak}-day streak</span>
               )}
@@ -455,15 +456,16 @@ export function EmailSimRunner({
           )}
         </div>
 
-        <div className="es-foot-row">
-          <button className="es-cta ghost" onClick={copyPrompt}>
-            {copyLabel}
-          </button>
-          <button className="es-cta" onClick={() => router.push("/learn")}>
-            Done →
-          </button>
-        </div>
+        </section>
       </main>
+      <footer className="es-foot es-foot-row">
+        <button className="es-cta ghost" onClick={copyPrompt}>
+          {copyLabel}
+        </button>
+        <button className="es-cta" onClick={() => router.push("/learn")}>
+          Done →
+        </button>
+      </footer>
     </div>
   );
 }

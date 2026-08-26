@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { ReelsFeed, type Reel } from "@/components/reels/ReelsFeed";
 import { toggleReelInteraction, recordReelWatch } from "./actions";
 import { TabBar } from "@/components/app/TabBar";
+import { markReelsSeen } from "@/lib/reels/newness";
 
 export const dynamic = "force-dynamic";
 
@@ -26,20 +27,32 @@ export default async function ReelsPage() {
     .single();
   if (!profile?.onboarding_complete) redirect("/onboarding");
 
+  // Pool a LARGE window of approved reels (not just the newest few) so that as
+  // the daily auto-pull keeps adding videos, OLDER reels stay in rotation too —
+  // then shuffle for a random feed order each visit. The rows are tiny (5 cols),
+  // so a 500-cap is effectively "all" at MVP scale (months of runway) while
+  // still bounding memory if the table ever grows very large.
   const { data: reelRows } = await supabase
     .from("reels")
     .select("id, youtube_id, title, channel, topic")
     .eq("status", "approved")
-    .order("published_at", { ascending: false, nullsFirst: false })
-    .limit(30);
+    .order("created_at", { ascending: false, nullsFirst: false })
+    .limit(500);
 
-  const reels: Reel[] = (reelRows ?? []).map((r) => ({
+  const mapped: Reel[] = (reelRows ?? []).map((r) => ({
     id: r.id as number,
     youtubeId: r.youtube_id as string,
     title: (r.title as string) ?? "AI for HR",
     channel: (r.channel as string) ?? null,
     topic: (r.topic as string) ?? null,
   }));
+
+  // Fisher-Yates shuffle (server-side, per request) for a random feed order.
+  const reels: Reel[] = [...mapped];
+  for (let i = reels.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [reels[i], reels[j]] = [reels[j], reels[i]];
+  }
 
   const reelIds = reels.map((r) => r.id);
   const { data: interactions } = reelIds.length
@@ -66,6 +79,9 @@ export default async function ReelsPage() {
     return recordReelWatch(reelId);
   }
 
+  // Opening the feed clears the "New" badge on the Reels tab.
+  await markReelsSeen(supabase, user.id);
+
   return (
     <div className="lh">
       <ReelsFeed
@@ -76,7 +92,7 @@ export default async function ReelsPage() {
         onToggle={toggle}
         onWatch={watch}
       />
-      <TabBar avatarKey={profile?.avatar_key} />
+      <TabBar avatarKey={profile?.avatar_key} reelsNew={false} />
     </div>
   );
 }

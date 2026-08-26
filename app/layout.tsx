@@ -25,7 +25,7 @@ const poppins = Poppins({
 export const metadata: Metadata = {
   title: "AI & Tech for Professionals",
   description:
-    "Learn to do your real job with AI — short lessons and applied, gamified simulations for HR professionals.",
+    "Learn to do your real job with AI: short lessons and applied, gamified simulations for HR professionals.",
   manifest: "/manifest.webmanifest",
   appleWebApp: { capable: true, title: "AI & Tech", statusBarStyle: "default" },
 };
@@ -52,6 +52,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <div className="app-surface">
           <span className="sigdot" aria-hidden />
           <span className="sigdot d2" aria-hidden />
+          <span className="sigdot d3" aria-hidden />
+          <span className="sigdot d4" aria-hidden />
+          <span className="sigdot d5" aria-hidden />
           <ThemeToggle />
           <PostHogProvider>{children}</PostHogProvider>
         </div>

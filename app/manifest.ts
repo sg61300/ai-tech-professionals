@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "AI & Tech for Professionals",
     short_name: "AI & Tech",
     description:
-      "Learn to do your real job with AI — short lessons and applied simulations for HR professionals.",
+      "Learn to do your real job with AI: short lessons and applied simulations for HR professionals.",
     start_url: "/learn",
     scope: "/",
     display: "standalone",

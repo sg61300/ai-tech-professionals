@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import { trackThemePreference } from "@/app/actions/telemetry";
 
 /**
  * Light/dark toggle, pinned to the app-surface top-right corner. The actual
@@ -32,6 +33,7 @@ export function ThemeToggle() {
     } catch {
       /* private mode — ignore */
     }
+    void trackThemePreference(next ? "dark" : "light"); // metric #10 + $set preferred_theme
   }
 
   return (

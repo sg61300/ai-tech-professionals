@@ -46,7 +46,7 @@ export function SavedArtifacts({ items }: { items: Artifact[] }) {
     return (
       <div className="pf-empty">
         <span aria-hidden>🧠</span>
-        <p>Nothing saved yet. Finish a simulation or save a reel — your greatest hits land here.</p>
+        <p>Nothing saved yet. Finish a simulation or save a reel, and your greatest hits land here.</p>
       </div>
     );
   }

@@ -72,6 +72,7 @@ describe("nextPlayableLesson", () => {
   });
 
   it("returns null once all lessons are done", () => {
-    expect(nextPlayableLesson(L1_SPINE, new Set(["l1", "l2", "l3", "l4", "l5"]))).toBeNull();
+    const allLessons = ["l1", "l2", "l3", "l4", "l5", "l6", "l7", "l8", "l9", "l10", "l11", "l12"];
+    expect(nextPlayableLesson(L1_SPINE, new Set(allLessons))).toBeNull();
   });
 });

@@ -17,7 +17,11 @@ export function SessionTracker() {
     } catch {
       /* private mode — fall through and fire once for this mount */
     }
-    void recordSession();
+    // Resolved theme at load — $set as preferred_theme so users who never toggle
+    // are still counted (metric #10). The pre-paint script in layout.tsx has
+    // already applied the .dark class by the time this effect runs.
+    const theme = document.documentElement.classList.contains("dark") ? "dark" : "light";
+    void recordSession(theme);
   }, []);
 
   return null;
