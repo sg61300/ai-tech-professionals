@@ -1,7 +1,7 @@
 "use server";
 
 import { z } from "zod";
-import { revalidatePath } from "next/cache";
+import { revalidateProgress } from "@/lib/revalidate";
 import { createClient } from "@/lib/supabase/server";
 import { captureServer } from "@/lib/analytics/server";
 import { EVENTS } from "@/lib/analytics/events";
@@ -125,7 +125,7 @@ export async function completeSystemSim(input: unknown): Promise<SystemCompleteR
     await captureServer(user.id, EVENTS.STREAK_ADVANCED, { streak: streakResult.newStreak });
   }
 
-  revalidatePath("/learn");
+  revalidateProgress();
 
   return {
     ok: true,

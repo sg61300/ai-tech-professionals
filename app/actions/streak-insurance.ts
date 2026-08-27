@@ -5,13 +5,20 @@ import { createClient } from "@/lib/supabase/server";
 import { captureServer } from "@/lib/analytics/server";
 import { EVENTS } from "@/lib/analytics/events";
 import { applyXp } from "@/lib/xp";
-import { assessStreakRisk } from "@/lib/streakinsurance";
+import { civilDateInTz } from "@/lib/streak";
+import { assessStreakRisk, addDaysIso, STREAK_SAVE_WINDOW_DAYS } from "@/lib/streakinsurance";
 
 export type SaveStreakResult =
   | { ok: true; xpSpent: number; newXp: number; newLevel: number; streak: number }
   | {
       ok: false;
-      error: "not_signed_in" | "no_profile" | "not_at_risk" | "already_saved" | "save_failed";
+      error:
+        | "not_signed_in"
+        | "no_profile"
+        | "not_at_risk"
+        | "already_saved"
+        | "weekly_cap_reached"
+        | "save_failed";
     };
 
 /**
@@ -39,14 +46,28 @@ export async function saveStreak(): Promise<SaveStreakResult> {
     .single();
   if (!profile) return { ok: false, error: "no_profile" };
 
+  // Weekly-cap guardrail (Q7): count saves already bought in the rolling window,
+  // INDEPENDENT of XP balance, so referral/earned XP can't fund an unlimited
+  // unearned streak. Re-derived server-side — the client is never trusted.
+  const tz = profile.timezone ?? "Asia/Kolkata";
+  const today = civilDateInTz(new Date(), tz);
+  const windowStart = addDaysIso(today, -(STREAK_SAVE_WINDOW_DAYS - 1));
+  const { count: savesInWindow } = await supabase
+    .from("streak_saves")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id)
+    .gte("saved_date", windowStart);
+
   const risk = assessStreakRisk({
     lastActiveDate: profile.last_active_date,
     now: new Date(),
-    timeZone: profile.timezone ?? "Asia/Kolkata",
+    timeZone: tz,
     currentStreak: profile.streak_count,
     xp: profile.xp,
+    savesInWindow: savesInWindow ?? 0,
   });
   if (!risk.atRisk) return { ok: false, error: "not_at_risk" };
+  if (risk.capReached) return { ok: false, error: "weekly_cap_reached" };
 
   // Insert-first idempotency lock: one save per return-day. A unique-violation
   // means this return-day was already saved (double-tap / race) — bail without

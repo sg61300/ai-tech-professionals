@@ -412,8 +412,15 @@
   /* right padding clears the global theme toggle pinned to the surface corner */
   .topbar { position: sticky; top: 0; z-index: 4; padding: 12px 82px 10px 20px; flex: none; border-bottom: 1px solid var(--border); background: color-mix(in srgb, var(--background) 82%, transparent); backdrop-filter: blur(6px); }
   .topbar-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-  .flame { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 700; color: var(--amber); background: var(--amber-tint); padding: 4px 9px; border-radius: 999px; font-variant-numeric: tabular-nums; text-decoration: none; cursor: pointer; transition: filter .15s, transform .12s; }
+  .flame { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 700; color: var(--amber); background: var(--amber-tint); padding: 4px 9px; border-radius: 999px; font-variant-numeric: tabular-nums; text-decoration: none; cursor: pointer; transition: filter .15s, transform .12s; animation: flame-pulse 2.4s ease-in-out infinite; }
   @media (hover: hover) { a.flame:hover { filter: brightness(1.04); transform: translateY(-1px); } }
+  /* Ring pulse to invite a tap — synced to the XP pill's .xp-pulse (2.4s) so the
+     two topbar pills breathe in unison; amber here vs violet there. */
+  @keyframes flame-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--amber) 40%, transparent); }
+    50% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--amber) 0%, transparent); }
+  }
+  @media (prefers-reduced-motion: reduce) { .flame { animation: none; } }
   .prog { height: 8px; border-radius: 999px; background: var(--teal-tint); overflow: hidden; flex: 1; }
   .prog > i { display: block; height: 100%; min-width: 8px; border-radius: 999px; background: linear-gradient(90deg, var(--teal), #2dd4bf); transition: width .7s cubic-bezier(.22,1,.36,1); }
   /* Animate the fill up from 0 on load so progress visibly moves. */

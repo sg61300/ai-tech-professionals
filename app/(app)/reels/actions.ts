@@ -8,6 +8,7 @@ import { EVENTS } from "@/lib/analytics/events";
 import { applyXp } from "@/lib/xp";
 import { computeStreak } from "@/lib/streak";
 import { reelXpForWatch, REEL_XP_MAX_WATCHES } from "@/lib/reels";
+import { revalidateProgress } from "@/lib/revalidate";
 
 const ReelIdSchema = z.coerce.number().int().positive();
 const ToggleTypeSchema = z.enum(["like", "save", "share", "report"]);
@@ -85,6 +86,7 @@ export async function toggleReelInteraction(
           .eq("body", reelBody);
       }
       revalidatePath("/reels");
+      revalidatePath("/profile"); // save/unsave mirrors the second brain
       return { ok: true, active: false };
     }
   }
@@ -115,6 +117,7 @@ export async function toggleReelInteraction(
     ...(kind === "report" && reasonValue ? { reason: reasonValue } : {}),
   });
   revalidatePath("/reels");
+  revalidatePath("/profile"); // a Save mirrors the reel into the second brain
   return { ok: true, active: !oneWay };
 }
 
@@ -202,6 +205,9 @@ export async function recordReelWatch(reelIdRaw: unknown): Promise<WatchResult> 
   if (streakResult.isNewDay && streakResult.isConsecutive) {
     await captureServer(user.id, EVENTS.STREAK_ADVANCED, { streak: streakResult.newStreak });
   }
+
+  // A watch moves XP + streak → refresh the dashboard, calendar, and profile.
+  revalidateProgress();
 
   return { ok: true, xpAwarded: xp, alreadyWatched: false, capped };
 }

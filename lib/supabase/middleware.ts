@@ -33,6 +33,19 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  // First-touch referral capture: a landing with ?ref=CODE stashes the code in
+  // a cookie that survives the OTP/OAuth round-trip. Resolved to `referred_by`
+  // at first signup (app/actions/session.ts). First-touch wins — don't overwrite.
+  const ref = request.nextUrl.searchParams.get("ref");
+  if (ref && !request.cookies.get("rune_ref")) {
+    response.cookies.set("rune_ref", ref, {
+      httpOnly: true,
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30, // 30 days
+    });
+  }
+
   const { pathname } = request.nextUrl;
   const isAuthRoute = pathname.startsWith("/login") || pathname.startsWith("/verify");
   const isPublic =

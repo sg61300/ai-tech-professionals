@@ -80,13 +80,29 @@
   font-size: 17px; color: var(--foreground);
 }
 .pf-stat span { font-size: 10px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--muted-foreground); }
-/* Streak tile is tappable → opens the calendar. Affordance on hover/active. */
+/* Streak tile is tappable → opens the calendar. It carries a PERSISTENT
+   interactive look (teal tint + teal label) so it reads as clickable even on
+   mobile where there's no hover, standing out from the three static tiles. */
 .pf-stat-link {
-  display: block; text-decoration: none; cursor: pointer;
-  transition: transform .12s ease, border-color .18s ease, box-shadow .18s ease;
+  position: relative; display: block; text-decoration: none; cursor: pointer;
+  border-color: color-mix(in srgb, var(--teal) 42%, var(--border));
+  background: color-mix(in srgb, var(--teal) 8%, var(--card));
+  transition: transform .12s ease, border-color .18s ease, box-shadow .18s ease, background .18s ease;
+  /* Pulse hint to draw the tap. Same 2.4s expanding-ring rhythm + shape as the
+     XP pill (.xp-pulse) so the two pulse in unison — teal here vs violet there. */
+  animation: streakPulse 2.4s ease-in-out infinite;
 }
-.pf-stat-link:hover { border-color: var(--teal); box-shadow: 0 4px 12px rgba(13, 40, 36, .1); transform: translateY(-1px); }
-.pf-stat-link:active { transform: translateY(0); }
+.pf-stat-link span { color: var(--teal-deep); font-weight: 700; }
+@keyframes streakPulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--teal) 34%, transparent); }
+  50% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--teal) 0%, transparent); }
+}
+@media (prefers-reduced-motion: reduce) { .pf-stat-link { animation: none; } }
+.pf-stat-link:hover {
+  border-color: var(--teal); box-shadow: 0 4px 12px rgba(13, 40, 36, .12);
+  transform: translateY(-1px); background: color-mix(in srgb, var(--teal) 13%, var(--card));
+}
+.pf-stat-link:active { transform: translateY(0); background: color-mix(in srgb, var(--teal) 18%, var(--card)); }
 
 /* Sections */
 .pf-sec { margin-top: 24px; }
@@ -145,6 +161,32 @@
 @media (hover: hover) { .pf-art-actions button:hover { border-color: var(--teal); } }
 .pf-art-del:hover { border-color: var(--error) !important; }
 
+/* Compact saved-reel row (icon + title link only — no bulky URL). */
+.pf-art-reel { align-items: center; padding: 8px 10px 8px 12px; gap: 8px; transition: border-color .15s; }
+.pf-reel-main { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1; text-decoration: none; }
+.pf-reel-ico {
+  flex: none; width: 24px; height: 24px; border-radius: 7px; display: grid; place-items: center;
+  background: color-mix(in srgb, var(--violet) 14%, var(--card)); color: var(--violet); font-size: 10px;
+}
+.pf-reel-title {
+  min-width: 0; flex: 1; font-size: 13px; font-weight: 600; color: var(--foreground);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+@media (hover: hover) {
+  .pf-art-reel:hover { border-color: var(--teal); }
+  .pf-reel-main:hover .pf-reel-title { color: var(--teal-deep); }
+}
+.pf-art-reel:active { border-color: var(--teal); }
+
+/* Collapse toggle so a large second brain stays short by default. */
+.pf-art-more {
+  display: block; margin: 12px auto 0; background: none; border: 0; cursor: pointer;
+  color: var(--teal-deep); font-size: 12.5px; font-weight: 700; padding: 6px 12px; border-radius: 8px;
+  transition: background .15s;
+}
+.pf-art-more:hover { background: color-mix(in srgb, var(--teal) 8%, transparent); }
+.pf-art-more:active { background: color-mix(in srgb, var(--teal) 16%, transparent); }
+
 .pf-empty {
   text-align: center; padding: 26px 18px; border: 1px dashed var(--border); border-radius: 14px;
   color: var(--muted-foreground);
@@ -177,12 +219,20 @@
     background: color-mix(in srgb, var(--error) 9%, transparent);
   }
 }
+/* Tap feedback on mobile (no hover): highlight on press. */
+.pf-signout button:active {
+  border-color: var(--error);
+  color: var(--error);
+  background: color-mix(in srgb, var(--error) 15%, transparent);
+}
 
 .pf-foot { margin-top: 22px; text-align: center; font-size: 11px; color: var(--muted-foreground); }
 
 /* ============================ Editable details ============================ */
 .ed-list { margin: 0; }
-.ed-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; transition: background .15s ease; }
+/* Uniform row thickness across all detail rows (inputs, static, and pickers) —
+   the pickers' 17px › chevron would otherwise make them taller than the rest. */
+.ed-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; box-sizing: border-box; transition: background .15s ease; }
 /* Highlight the editable (Name / Mobile) rows on hover + focus, like the pickers.
    :focus-within only fires on rows with a focusable input, so the static Email
    row is unaffected. */
@@ -190,14 +240,22 @@
 .ed-row:focus-within { background: color-mix(in srgb, var(--teal) 12%, var(--card)); }
 .ed-row dt { color: var(--muted-foreground); font-size: 13px; flex: none; }
 .ed-row dd { margin: 0; }
-.ed-static { font-weight: 700; color: var(--foreground); font-size: 14px; }
+.ed-static { font-weight: 600; color: var(--foreground); font-size: 14px; }
 .ed-input {
   width: 100%; min-width: 9rem; max-width: 15rem; text-align: right;
   background: transparent; border: 0; border-bottom: 1px dashed transparent;
-  color: var(--foreground); font-weight: 700; font-size: 14px; padding: 2px 0; outline: none;
+  color: var(--foreground); font-weight: 600; font-size: 14px; padding: 2px 0; outline: none;
 }
 .ed-input:focus { border-bottom-color: var(--teal); }
 .ed-input::placeholder { color: var(--muted-foreground); font-weight: 500; }
+/* Inline-edit affordance: a subtle pencil on the editable Name / Mobile rows,
+   brightening on hover/focus so users know the plain-looking text is editable.
+   Value + pencil hug the right edge together (input sizes to content, not
+   stretched, so the pencil sits right beside the value — never mid-row). */
+.ed-edit-wrap { display: flex; align-items: center; justify-content: flex-end; gap: 7px; min-width: 0; }
+.ed-edit-wrap .ed-input { flex: 0 1 auto; width: auto; min-width: 0; max-width: 12rem; }
+.ed-edit { flex: none; color: var(--muted-foreground); opacity: .6; transition: color .15s, opacity .15s; }
+.ed-row:hover .ed-edit, .ed-row:focus-within .ed-edit { color: var(--teal); opacity: 1; }
 /* Whole picker row is a button */
 /* Pickers are <button>s, so the .pf-details > div card rule doesn't reach them;
    style them as full card rows (white like Name/Email/Mobile) with a hover tint
@@ -209,7 +267,7 @@ button.ed-pick {
 }
 button.ed-pick:hover { background: color-mix(in srgb, var(--teal) 9%, var(--card)); }
 button.ed-pick:active { background: color-mix(in srgb, var(--teal) 16%, var(--card)); }
-.ed-pick-v { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; color: var(--foreground); font-size: 14px; }
+.ed-pick-v { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; color: var(--foreground); font-size: 14px; }
 .ed-pick-v span { color: var(--muted-foreground); font-size: 17px; line-height: 1; }
 .ed-pick:hover .ed-pick-v { color: var(--teal-deep); }
 .ed-pick:hover .ed-pick-v span { color: var(--teal); }
@@ -318,4 +376,96 @@ button.ed-pick:active { background: color-mix(in srgb, var(--teal) 16%, var(--ca
   bottom: calc(130px + env(safe-area-inset-bottom)); z-index: 65;
   background: var(--foreground); color: var(--background); font-size: 13px; font-weight: 600;
   padding: 10px 16px; border-radius: 999px; box-shadow: 0 6px 20px rgba(0,0,0,.25); animation: ed-fade .2s ease;
+}
+
+/* ============================ Referral (ADR-020) ============================ */
+.rf-card {
+  background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 14px;
+}
+.rf-lead { margin: 0 0 12px; font-size: 12.5px; line-height: 1.5; color: var(--muted-foreground); }
+.rf-lead b { color: var(--foreground); }
+
+.rf-link {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--background); border: 1px solid var(--border); border-radius: 12px;
+  padding: 4px 4px 4px 12px;
+}
+.rf-link-v {
+  flex: 1; min-width: 0; font-size: 12.5px; color: var(--foreground); font-weight: 600;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* Code display: read it as a code — mono, spaced, prominent. */
+.rf-code-v {
+  font-family: var(--font-mono, ui-monospace, "SF Mono", Menlo, monospace);
+  font-size: 15px; font-weight: 700; letter-spacing: 0.18em;
+  color: var(--teal-deep, var(--teal)); text-transform: uppercase;
+}
+.rf-copy {
+  flex: none; border: 0; cursor: pointer; border-radius: 9px;
+  background: var(--teal); color: #fff; font-weight: 700; font-size: 12.5px; padding: 8px 14px;
+  transition: background .18s, filter .15s;
+}
+.rf-copy:hover { filter: brightness(1.05); }
+/* Copied: switch to a green "done" state and hold it while on the screen. */
+.rf-copy.copied { background: #16a34a; }
+
+/* Even share-sheet row: five equal-width tiles, icon over label. */
+.rf-channels { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-top: 12px; }
+.rf-channels button {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  cursor: pointer; background: var(--background); border: 1px solid var(--border); border-radius: 13px;
+  color: var(--foreground); font-size: 10.5px; font-weight: 600; padding: 10px 2px; min-height: 58px;
+  transition: border-color .15s, background .15s, transform .12s;
+}
+.rf-channels button svg { display: block; }
+@media (hover: hover) {
+  .rf-channels button:hover {
+    border-color: var(--teal); background: color-mix(in srgb, var(--teal) 8%, var(--card));
+    transform: translateY(-1px);
+  }
+}
+.rf-channels button:active { transform: translateY(0); }
+
+/* Apply-a-code card */
+.rf-apply-card {
+  margin-top: 14px; padding: 14px; border-radius: 16px;
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--teal) 9%, var(--card)),
+    color-mix(in srgb, var(--violet) 9%, var(--card)));
+  border: 1px solid color-mix(in srgb, var(--teal) 28%, var(--border));
+}
+.rf-apply-head { display: flex; gap: 11px; align-items: flex-start; margin-bottom: 12px; }
+.rf-apply-ic {
+  flex: none; width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center;
+  background: color-mix(in srgb, var(--teal) 14%, var(--card)); color: var(--teal-deep);
+  border: 1px solid color-mix(in srgb, var(--teal) 26%, transparent);
+}
+.rf-apply-copy { min-width: 0; }
+.rf-apply-title {
+  font-family: var(--font-poppins), sans-serif; font-weight: 700; font-size: 14px; margin: 0;
+  color: var(--foreground); line-height: 1.2;
+}
+.rf-apply-sub { margin: 4px 0 0; font-size: 12px; color: var(--muted-foreground); line-height: 1.45; }
+.rf-apply-sub b { color: var(--foreground); font-weight: 700; }
+
+.rf-apply { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.rf-apply-in {
+  flex: 1; min-width: 8rem; background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+  padding: 11px 14px; font-size: 14px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--foreground); outline: none;
+}
+.rf-apply-in:focus { border-color: var(--teal); }
+.rf-apply-in::placeholder { color: var(--muted-foreground); font-weight: 500; letter-spacing: normal; text-transform: none; }
+.rf-apply-btn {
+  flex: none; border: 0; cursor: pointer; border-radius: 12px;
+  background: var(--teal); color: #fff; font-weight: 700; font-size: 14px; padding: 11px 20px;
+  transition: filter .15s;
+}
+.rf-apply-btn:hover { filter: brightness(1.05); }
+.rf-apply-btn:disabled { opacity: .6; cursor: default; }
+.rf-apply-err { flex-basis: 100%; margin: 2px 2px 0; font-size: 12px; color: var(--error); }
+.rf-applied {
+  background: color-mix(in srgb, var(--teal) 10%, var(--card));
+  border: 1px solid color-mix(in srgb, var(--teal) 34%, transparent); border-radius: 14px;
+  padding: 12px 14px; font-size: 12.5px; font-weight: 600; color: var(--foreground); line-height: 1.5;
 }

@@ -318,6 +318,14 @@ export function TasteSimRunner({
               </div>
             )}
 
+            {/* Invitee referral bonus: a friend's code got them here, so both sides
+                earned XP. Only shows when a payout actually happened. */}
+            {completion && completion.ok && !completion.alreadyDone && completion.referralXp > 0 && (
+              <p className="lr-refbonus">
+                🎁 <b>+{completion.referralXp} bonus.</b> You and your friend both earned it.
+              </p>
+            )}
+
             <div className="ts-grill">
               <p className="lr-kicker">🔥 {sim.grillBeat.prompt}</p>
               <div className="lr-opts">

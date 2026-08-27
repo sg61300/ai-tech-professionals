@@ -1,4 +1,3 @@
-import { Suspense } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -10,15 +9,22 @@ import { reelsHasNew } from "@/lib/reels/newness";
 import { LessonPath } from "@/components/brand/LessonPath";
 import { buildLearnPath } from "@/components/brand/learnPath";
 import { TabBar } from "@/components/app/TabBar";
-import { RuneLoader } from "@/components/brand/RuneLoader";
-import { assessStreakRisk } from "@/lib/streakinsurance";
+import { assessStreakRisk, addDaysIso, STREAK_SAVE_WINDOW_DAYS } from "@/lib/streakinsurance";
+import { civilDateInTz } from "@/lib/streak";
 import { StreakInsurancePrompt } from "@/components/streak/StreakInsurancePrompt";
 import { XpInfo } from "@/components/brand/XpInfo";
+import { summarizeReferrerRewards } from "@/lib/referral";
+import { ReferralBanner } from "@/components/referral/ReferralBanner";
 
 /**
  * Learn home (ADR-015/017). Top bar (level/XP/streak) + Rune greeting + the
- * vertical winding path + bottom tab nav. Streams behind the "Rune is Tuning"
- * loader while the profile resolves.
+ * vertical winding path + bottom tab nav.
+ *
+ * Loading state: the route-level `loading.tsx` is the SINGLE "Rune is Tuning"
+ * loader shown while this async page resolves its data. We deliberately do NOT
+ * also wrap the body in an in-page <Suspense> — that produced a SECOND loader in
+ * a differently-sized container, so the spinner appeared twice and jumped
+ * position on every entry to /learn ("two loaders").
  *
  * NOTE: the path currently renders the representative L1 layout. Wiring it to
  * live `lesson_progress` (real done/current/locked nodes) lands with the L1
@@ -28,21 +34,7 @@ import { XpInfo } from "@/components/brand/XpInfo";
 // render fresh so it reflects the latest activity, never a cached fetch.
 export const dynamic = "force-dynamic";
 
-export default function LearnPage() {
-  return (
-    <Suspense
-      fallback={
-        <div className="flex min-h-[70vh] items-center justify-center">
-          <RuneLoader size={200} />
-        </div>
-      }
-    >
-      <LearnHome />
-    </Suspense>
-  );
-}
-
-async function LearnHome() {
+export default async function LearnPage() {
   const supabase = await createClient();
   const {
     data: { user },
@@ -67,12 +59,22 @@ async function LearnHome() {
 
   // Streak insurance: if the user is back after missing 1–2 days, offer to spend
   // XP to keep their streak (the mercy mechanic — lib/streakinsurance, ADR-002).
+  // The weekly cap (Q7) counts saves already bought in the rolling window so
+  // earned/referral XP can't fund an unlimited unearned streak.
+  const siTz = profile?.timezone ?? "Asia/Kolkata";
+  const siWindowStart = addDaysIso(civilDateInTz(new Date(), siTz), -(STREAK_SAVE_WINDOW_DAYS - 1));
+  const { count: savesInWindow } = await supabase
+    .from("streak_saves")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id)
+    .gte("saved_date", siWindowStart);
   const streakRisk = assessStreakRisk({
     lastActiveDate: profile?.last_active_date ?? null,
     now: new Date(),
-    timeZone: profile?.timezone ?? "Asia/Kolkata",
+    timeZone: siTz,
     currentStreak: streak,
     xp,
+    savesInWindow: savesInWindow ?? 0,
   });
 
   // Live progression: which lessons are done drives every node's state.
@@ -90,6 +92,17 @@ async function LearnHome() {
   const allDone = resumeId === null;
 
   const reelsNew = await reelsHasNew(supabase, user.id);
+
+  // Referral notifier (Session 23): the referrer earned XP from an invitee's
+  // session and is almost never in-app when it fires, so surface UNSEEN grants
+  // here as a persisted, dismissible banner. RLS scopes the ledger to this user;
+  // referrer_id = me isolates rewards THEY earned as the referrer.
+  const { data: unseenRewards } = await supabase
+    .from("referral_rewards")
+    .select("xp_each")
+    .eq("referrer_id", user.id)
+    .eq("seen_by_referrer", false);
+  const rewardSummary = summarizeReferrerRewards(unseenRewards ?? []);
 
   return (
     <div className="lh">
@@ -135,12 +148,17 @@ async function LearnHome() {
       </div>
 
       <main className="lh-content">
+        {rewardSummary && (
+          <ReferralBanner title={rewardSummary.title} subtitle={rewardSummary.subtitle} />
+        )}
+
         {streakRisk.atRisk && (
           <StreakInsurancePrompt
             streak={streakRisk.streak}
             missedDays={streakRisk.missedDays}
             cost={streakRisk.cost}
             costPct={streakRisk.costPct}
+            capReached={streakRisk.capReached}
           />
         )}
 

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createPortal } from "react-dom";
+import { cumXpForLevel } from "@/lib/xp";
 import "./xpinfo.css";
 
 /**
@@ -13,6 +14,8 @@ import "./xpinfo.css";
  */
 function XpDialog({ level, xp, onClose }: { level: number; xp: number; onClose: () => void }) {
   if (typeof document === "undefined") return null;
+  // XP still needed to climb into the next tier (for the plain-English explainer).
+  const toNextTier = Math.max(0, cumXpForLevel(level + 1) - xp);
   return createPortal(
     <div className="xpi-overlay" role="dialog" aria-modal="true" onClick={onClose}>
       <div className="xpi-card" onClick={(e) => e.stopPropagation()}>
@@ -25,6 +28,14 @@ function XpDialog({ level, xp, onClose }: { level: number; xp: number; onClose: 
         </div>
         <p className="xpi-lead">
           XP is your momentum. You&apos;re at <b>{xp.toLocaleString()} XP</b>, tier <b>{level}</b>.
+        </p>
+        <p className="xpi-tier">
+          A <b>tier</b> is simply your XP rank — like belts in a game, it climbs as you learn.
+          {toNextTier > 0 && (
+            <>
+              {" "}Just <b>{toNextTier.toLocaleString()} XP</b> more to reach tier <b>{level + 1}</b>.
+            </>
+          )}
         </p>
         <ul className="xpi-list">
           <li>

@@ -381,6 +381,7 @@
   background: color-mix(in srgb, var(--violet) 8%, var(--card));
   border: 1px solid color-mix(in srgb, var(--violet) 28%, var(--border));
   margin: 12px 0;
+  overflow-wrap: anywhere; /* guard: long values wrap, never overflow the card */
 }
 .sx-reqbox ul {
   margin: 8px 0 0;

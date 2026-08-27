@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { assessStreakRisk, addDaysIso, STREAK_SAVE_PCT } from ".";
+import {
+  assessStreakRisk,
+  addDaysIso,
+  STREAK_SAVE_PCT,
+  STREAK_SAVE_WEEKLY_CAP,
+  streakSaveCapReached,
+} from ".";
 
 const TZ = "Asia/Kolkata";
 // A fixed "now": 2026-08-26 ~12:00 IST.
@@ -80,5 +86,39 @@ describe("assessStreakRisk", () => {
   it("is affordable by construction — cost never exceeds xp", () => {
     const r = assess({ lastActiveDate: "2026-08-23", xp: 10 });
     expect(r.cost).toBeLessThanOrEqual(10);
+  });
+});
+
+describe("streakSaveCapReached", () => {
+  it("is false below the weekly cap", () => {
+    expect(streakSaveCapReached(0)).toBe(false);
+    expect(streakSaveCapReached(STREAK_SAVE_WEEKLY_CAP - 1)).toBe(false);
+  });
+
+  it("is true at or over the weekly cap", () => {
+    expect(streakSaveCapReached(STREAK_SAVE_WEEKLY_CAP)).toBe(true);
+    expect(streakSaveCapReached(STREAK_SAVE_WEEKLY_CAP + 2)).toBe(true);
+  });
+});
+
+describe("assessStreakRisk — weekly save cap (Q7 guardrail)", () => {
+  it("allows the save when under the cap (default: no saves this week)", () => {
+    const r = assess({ lastActiveDate: "2026-08-24" });
+    expect(r.atRisk).toBe(true);
+    expect(r.capReached).toBe(false);
+    expect(r.canSave).toBe(true);
+  });
+
+  it("blocks the save once the weekly cap is reached, but stays at risk", () => {
+    const r = assess({ lastActiveDate: "2026-08-24", savesInWindow: STREAK_SAVE_WEEKLY_CAP });
+    expect(r.atRisk).toBe(true); // still in the savable window (honest UI)
+    expect(r.capReached).toBe(true);
+    expect(r.canSave).toBe(false); // ...but no more saves this week
+  });
+
+  it("never allows a save when not at risk, cap or no cap", () => {
+    const r = assess({ lastActiveDate: "2026-08-25", savesInWindow: 0 });
+    expect(r.atRisk).toBe(false);
+    expect(r.canSave).toBe(false);
   });
 });

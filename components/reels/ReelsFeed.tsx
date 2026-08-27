@@ -340,7 +340,7 @@ export function ReelsFeed({
                 aria-pressed={saved.has(reel.id)}
                 aria-label="Save"
               >
-                <span>{saved.has(reel.id) ? "🔖" : "🏷️"}</span>
+                <span><BookmarkIcon filled={saved.has(reel.id)} /></span>
                 <i>Save</i>
               </button>
               <button
@@ -402,4 +402,19 @@ function toggleSet(s: Set<number>, id: number, on: boolean): Set<number> {
   if (on) next.add(id);
   else next.delete(id);
   return next;
+}
+
+/** Bookmark glyph for the Save action — outline when not saved, filled when
+ *  saved. A bookmark (not the old 🏷️ tag) is the universal "save" affordance,
+ *  so users don't mistake Like (❤️) for the save-to-second-brain action. */
+function BookmarkIcon({ filled }: { filled: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 24 24" width="22" height="22" aria-hidden focusable="false"
+      fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2"
+      strokeLinecap="round" strokeLinejoin="round"
+    >
+      <path d="M6 3.5h12a1 1 0 0 1 1 1V21l-7-4-7 4V4.5a1 1 0 0 1 1-1Z" />
+    </svg>
+  );
 }

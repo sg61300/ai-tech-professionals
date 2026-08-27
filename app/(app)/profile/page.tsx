@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { displayName } from "@/lib/display";
@@ -9,6 +10,8 @@ import { SignOutButton } from "@/components/auth/SignOutButton";
 import { SavedArtifacts, type Artifact } from "@/components/profile/SavedArtifacts";
 import { XpProgress } from "@/components/brand/XpInfo";
 import { EditableDetails } from "@/components/profile/EditableDetails";
+import { ReferralShareCard, ApplyReferralCard } from "@/components/profile/ReferralCards";
+import { getOrCreateReferralCode } from "@/app/actions/referral";
 import { seniorityLabel, professionLabel } from "@/lib/profile/labels";
 import { reelsHasNew } from "@/lib/reels/newness";
 import "@/components/profile/profile.css";
@@ -32,7 +35,7 @@ export default async function ProfilePage() {
   const { data: profile } = await supabase
     .from("profiles")
     .select(
-      "name, avatar_name, avatar_key, mobile, xp, level, streak_count, longest_streak, profession, seniority, ai_proficiency, onboarding_complete",
+      "name, avatar_name, avatar_key, mobile, xp, level, streak_count, longest_streak, profession, seniority, ai_proficiency, onboarding_complete, referred_by",
     )
     .eq("id", user.id)
     .single();
@@ -69,6 +72,23 @@ export default async function ProfilePage() {
   else if (best >= 3) badges.push({ name: "On a Roll", emoji: "🔥" });
 
   const artifacts = (arts ?? []) as Artifact[];
+
+  // Referral (ADR-020): everyone can share; the "have a code?" input only shows
+  // while the user is still eligible (no code applied + taste sim not done).
+  // Build the invite link server-side from the request host so the client card
+  // needs no browser-origin effect. This is the PLAIN app URL (no ?ref): the
+  // friend opens the app and types the shared code into the signup prompt —
+  // attribution is via the code, not the link (user decision, Session 23).
+  const referralCode = await getOrCreateReferralCode();
+  const h = await headers();
+  const proto = h.get("x-forwarded-proto") ?? "https";
+  const host = h.get("host") ?? "";
+  const referralLink = host ? `${proto}://${host}/` : null;
+  // Show the apply section until the taste sim is done (the value window). If a
+  // code is already applied, the card shows the persistent "applied" confirmation
+  // instead of the input — so the user keeps seeing it worked until they play.
+  const referralApplied = !!profile?.referred_by;
+  const showReferralApply = !simIds.has(tasteSim.id);
 
   return (
     <div className="lh">
@@ -129,9 +149,21 @@ export default async function ProfilePage() {
           </section>
         )}
 
+        {/* Invite friends (referral — ADR-020) */}
+        <section className="pf-sec">
+          <h2 className="pf-sec-h">🎁 Invite friends</h2>
+          <p className="pf-sec-sub">Share the app. When a friend finishes their taste simulation, you both earn a bonus.</p>
+          {referralLink && referralCode && (
+            <ReferralShareCard code={referralCode} link={referralLink} />
+          )}
+          {showReferralApply && <ApplyReferralCard alreadyApplied={referralApplied} />}
+        </section>
+
         {/* Details (editable — grilled design, Session 14) */}
         <section className="pf-sec">
-          <h2 className="pf-sec-h">Your details</h2>
+          <h2 className="pf-sec-h">
+            <span style={{ fontSize: "1.35em", verticalAlign: "-0.1em" }} aria-hidden>🪪</span> The real you
+          </h2>
           <EditableDetails
             initial={{
               name: profile?.name ?? null,

@@ -1,9 +1,12 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { civilDateInTz } from "@/lib/streak";
 import { captureServer } from "@/lib/analytics/server";
 import { EVENTS } from "@/lib/analytics/events";
+import { applyReferralCode } from "@/app/actions/referral";
+import { normalizeCode } from "@/lib/referral";
 
 /**
  * Fires the session-level funnel events (Architecture/05). Called once per
@@ -46,7 +49,25 @@ export async function recordSession(
 
   if (lastSeen === null) {
     // First authenticated session ≈ signup complete (funnel entry point).
-    await captureServer(user.id, EVENTS.SIGNED_UP, {});
+    // Resolve any first-touch referral cookie so `signed_up` carries the
+    // referred-vs-organic split (weekly referred-signup rate, ADR-020).
+    let viaReferral = false;
+    let referralCode: string | null = null;
+    const jar = await cookies();
+    const raw = jar.get("rune_ref")?.value ?? null;
+    if (raw) {
+      const applied = await applyReferralCode(raw, "signup");
+      if (applied.ok) {
+        viaReferral = true;
+        referralCode = normalizeCode(raw);
+      }
+      jar.delete("rune_ref"); // consumed — don't reprocess
+    }
+    await captureServer(
+      user.id,
+      EVENTS.SIGNED_UP,
+      viaReferral ? { via_referral: true, referral_code: referralCode } : { via_referral: false },
+    );
   } else if (lastSeen !== today) {
     const signupDay = civilDateInTz(new Date(profile.created_at), tz);
     if (today !== signupDay) {

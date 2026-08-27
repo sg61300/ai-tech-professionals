@@ -31,6 +31,20 @@ export type Details = {
   ai_proficiency: string | null;
 };
 
+/** Small pencil to signal an inline-editable field (Name / Mobile look like
+ *  plain text otherwise). SVG (not emoji) for crispness + no encoding issues. */
+function EditPencil() {
+  return (
+    <svg
+      className="ed-edit" viewBox="0 0 24 24" width="14" height="14" aria-hidden focusable="false"
+      fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
+    >
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+    </svg>
+  );
+}
+
 /**
  * Editable "Your details" (grilled design, Session 14): inline inputs for
  * Name/Mobile, a bottom-sheet for Org role, full-screen overlays reusing the
@@ -168,7 +182,7 @@ export function EditableDetails({ initial }: { initial: Details }) {
       <dl className="pf-details ed-list">
         <div className="ed-row">
           <dt>Name</dt>
-          <dd>
+          <dd className="ed-edit-wrap">
             <input
               className="ed-input"
               value={draft.name ?? ""}
@@ -176,6 +190,7 @@ export function EditableDetails({ initial }: { initial: Details }) {
               placeholder="Your name"
               onChange={(e) => setDraft({ ...draft, name: e.target.value })}
             />
+            <EditPencil />
           </dd>
         </div>
         <div className="ed-row">
@@ -184,7 +199,7 @@ export function EditableDetails({ initial }: { initial: Details }) {
         </div>
         <div className="ed-row">
           <dt>Mobile</dt>
-          <dd>
+          <dd className="ed-edit-wrap">
             <input
               className="ed-input"
               type="tel"
@@ -193,6 +208,7 @@ export function EditableDetails({ initial }: { initial: Details }) {
               placeholder="Add mobile"
               onChange={(e) => setDraft({ ...draft, mobile: e.target.value })}
             />
+            <EditPencil />
           </dd>
         </div>
         <button type="button" className="ed-row ed-pick" onClick={() => setSheet("role")}>

@@ -33,6 +33,10 @@ export const EVENTS = {
   THEME_SET: "theme_set", // metric #10 — dark-mode preference {theme} (+ $set preferred_theme)
   REELS_OPENED: "reels_opened", // metric #11 — opened the reels screen (denominator)
   REELS_SCREEN_TIME: "reels_screen_time", // metric #11 — visible seconds on the reels screen per visit {seconds}
+  // Referral (AARRR Referral stage — ADR-020 / Session 21). All server-side.
+  REFERRAL_LINK_SHARED: "referral_link_shared", // referrer tapped a share channel {channel}
+  REFERRAL_CODE_APPLIED: "referral_code_applied", // invitee applied a code {via} (signup | profile)
+  REFERRAL_REWARD_GRANTED: "referral_reward_granted", // invitee activated → both sides paid {xp_each}
 } as const;
 
 export type EventName = (typeof EVENTS)[keyof typeof EVENTS];

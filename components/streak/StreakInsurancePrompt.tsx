@@ -19,11 +19,14 @@ export function StreakInsurancePrompt({
   missedDays,
   cost,
   costPct,
+  capReached = false,
 }: {
   streak: number;
   missedDays: number;
   cost: number;
   costPct: number;
+  /** Weekly save cap used up (Q7) — show the limit, no purchasable save. */
+  capReached?: boolean;
 }) {
   const router = useRouter();
   const [dismissed, setDismissed] = useState(() => {
@@ -51,6 +54,9 @@ export function StreakInsurancePrompt({
     } else if (res.error === "already_saved" || res.error === "not_at_risk") {
       // State changed under us — just refresh to the truth.
       router.refresh();
+    } else if (res.error === "weekly_cap_reached") {
+      setSaving(false);
+      setError("You've used all your streak saves this week. It's back next week.");
     } else {
       setSaving(false);
       setError("Could not save your streak. Please try again.");
@@ -82,6 +88,30 @@ export function StreakInsurancePrompt({
 
   const pct = Math.round(costPct * 100);
   const days = missedDays === 1 ? "a day" : `${missedDays} days`;
+
+  // Weekly cap used up (Q7): still tell them honestly that the streak is at
+  // risk, but there's no save to buy this week — no matter how much XP they have.
+  if (capReached) {
+    return (
+      <div className="si-card" role="alert">
+        <div className="si-rune">
+          <RuneMascot state="streakAtRisk" spriteSrc="/mascot/rune-hero-clean.png" dimensions={64} />
+        </div>
+        <div className="si-body">
+          <div className="si-title">Your {streak}-day streak is at risk!</div>
+          <div className="si-sub">
+            You missed {days}. You&apos;ve used all your streak saves this week, so they&apos;re back
+            next week. Do a lesson today to keep it going for free.
+          </div>
+          <div className="si-actions">
+            <button className="si-dismiss" onClick={onDismiss}>
+              Got it
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="si-card" role="alert">

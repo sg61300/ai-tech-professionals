@@ -17,7 +17,9 @@ export default async function OnboardingPage() {
 
   const { data } = await supabase
     .from("profiles")
-    .select("profession, name, avatar_name, mobile, avatar_key, seniority, ai_proficiency, onboarding_complete")
+    .select(
+      "profession, name, avatar_name, mobile, avatar_key, seniority, ai_proficiency, onboarding_complete, referred_by",
+    )
     .eq("id", user.id)
     .single();
 
@@ -36,6 +38,7 @@ export default async function OnboardingPage() {
   return (
     <OnboardingFlow
       startStep={step}
+      alreadyReferred={!!data?.referred_by}
       initial={{
         name: data?.name ?? "",
         avatarName: data?.avatar_name ?? "",

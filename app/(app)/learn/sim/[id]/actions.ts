@@ -4,12 +4,13 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { captureServer } from "@/lib/analytics/server";
 import { EVENTS } from "@/lib/analytics/events";
-import { revalidatePath } from "next/cache";
+import { revalidateProgress } from "@/lib/revalidate";
 import { callAI } from "@/lib/ai";
 import { buildTastePrompt } from "@/lib/ai/prompts";
 import { applyXp } from "@/lib/xp";
 import { computeStreak } from "@/lib/streak";
 import { tasteSim } from "@/content";
+import { grantReferralReward } from "@/app/actions/referral";
 
 const SelectionsSchema = z.object({
   roleIndex: z.number().int(),
@@ -58,6 +59,8 @@ export type TasteCompleteResult =
       streak: number;
       streakAdvanced: boolean;
       badge: string;
+      /** Referral bonus the invitee just earned (0 if not referred / payouts off). Drives the inline celebration line. */
+      referralXp: number;
     }
   | { ok: false; error: string };
 
@@ -101,6 +104,7 @@ export async function completeTasteSim(): Promise<TasteCompleteResult> {
       streak: profile.streak_count,
       streakAdvanced: false,
       badge: tasteSim.badge,
+      referralXp: 0,
     };
   }
 
@@ -131,12 +135,20 @@ export async function completeTasteSim(): Promise<TasteCompleteResult> {
   await supabase.from("profiles").update(patch).eq("id", user.id);
 
   await captureServer(user.id, EVENTS.TASTE_SIM_COMPLETED, { sim_id: tasteSim.id });
+
+  // Referral reward fires on the invitee's first taste sim (their first real
+  // value) — pays both sides if this user was referred (ADR-020). Flag-gated,
+  // idempotent, cross-user credit handled inside. Best-effort: never block the
+  // completion response on it. The returned amount (if any) drives the invitee's
+  // inline "you both earned it" celebration line (Session 23 notifier).
+  const grant = await grantReferralReward(user.id);
+
   if (xpResult.leveledUp) await captureServer(user.id, EVENTS.LEVEL_UP, { level: xpResult.level });
   if (streakResult.isNewDay && streakResult.isConsecutive) {
     await captureServer(user.id, EVENTS.STREAK_ADVANCED, { streak: streakResult.newStreak });
   }
 
-  revalidatePath("/learn");
+  revalidateProgress();
 
   return {
     ok: true,
@@ -147,5 +159,6 @@ export async function completeTasteSim(): Promise<TasteCompleteResult> {
     streak: streakResult.isNewDay ? streakResult.newStreak : profile.streak_count,
     streakAdvanced: streakResult.isNewDay && streakResult.isConsecutive,
     badge: tasteSim.badge,
+    referralXp: grant.granted ? grant.xpEach : 0,
   };
 }

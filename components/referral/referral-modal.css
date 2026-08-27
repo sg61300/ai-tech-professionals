@@ -1,0 +1,159 @@
+/* First-signup referral prompt (Session 23). Blurred backdrop + floating window,
+   dismissable. Token-based so it tracks light/dark. Portaled to <body>. */
+
+.rm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: color-mix(in srgb, var(--foreground) 45%, transparent);
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+  animation: rm-fade 0.2s ease both;
+}
+@keyframes rm-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.rm-window {
+  position: relative;
+  width: 100%;
+  max-width: 360px;
+  padding: 26px 22px 22px;
+  border-radius: 22px;
+  text-align: center;
+  background:
+    radial-gradient(120% 120% at 50% 0%, color-mix(in srgb, var(--violet) 12%, var(--card)) 0%, transparent 60%),
+    var(--card);
+  border: 1px solid color-mix(in srgb, var(--teal) 26%, var(--border));
+  box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.4);
+  animation: rm-pop 0.32s cubic-bezier(0.2, 0.9, 0.25, 1.15) both;
+}
+@keyframes rm-pop {
+  from { opacity: 0; transform: translateY(14px) scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+
+.rm-x {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--teal) 22%, var(--border));
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--foreground) 5%, transparent);
+  color: color-mix(in srgb, var(--foreground) 60%, transparent);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.12s;
+}
+.rm-x:hover:not(:disabled),
+.rm-x:focus-visible {
+  background: color-mix(in srgb, var(--foreground) 10%, transparent);
+  border-color: color-mix(in srgb, var(--teal) 45%, var(--border));
+  color: var(--foreground);
+  transform: scale(1.06);
+  outline: none;
+}
+.rm-x:active:not(:disabled) { transform: scale(0.94); }
+.rm-x:disabled { cursor: default; opacity: 0.5; }
+
+.rm-ico {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 12px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  font-size: 1.7rem;
+  background: linear-gradient(150deg, var(--teal), var(--violet));
+  box-shadow:
+    0 8px 18px -6px color-mix(in srgb, var(--teal) 60%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.rm-title {
+  margin: 0 0 6px;
+  font-family: var(--font-poppins, inherit);
+  font-weight: 700;
+  font-size: 1.15rem;
+  color: var(--foreground);
+}
+.rm-sub {
+  margin: 0 auto 18px;
+  max-width: 30ch;
+  font-size: 0.86rem;
+  line-height: 1.5;
+  color: var(--muted-foreground);
+}
+.rm-sub b { color: var(--foreground); }
+
+.rm-form {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.rm-input {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--background, var(--card));
+  color: var(--foreground);
+  font-size: 0.95rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.rm-input::placeholder { text-transform: none; letter-spacing: normal; color: var(--muted-foreground); }
+.rm-input:focus-visible {
+  outline: none;
+  border-color: var(--teal);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--teal) 22%, transparent);
+}
+.rm-apply {
+  flex: none;
+  padding: 12px 18px;
+  border-radius: 12px;
+  border: 0;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: #fff;
+  cursor: pointer;
+  background: linear-gradient(135deg, var(--teal), var(--teal-deep));
+  transition: filter 0.15s;
+}
+.rm-apply:hover:not(:disabled) { filter: brightness(1.06); }
+.rm-apply:disabled { opacity: 0.5; cursor: default; }
+
+.rm-err {
+  margin: 4px 0 0;
+  font-size: 0.8rem;
+  color: var(--coral, #e5484d);
+}
+
+.rm-skip {
+  margin-top: 14px;
+  border: 0;
+  background: none;
+  color: var(--muted-foreground);
+  font-size: 0.85rem;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.rm-skip:hover:not(:disabled) { color: var(--foreground); }
+.rm-skip:disabled { cursor: default; opacity: 0.5; }
+
+.rm-applied { padding: 4px 0 6px; }
+.rm-continue { margin-top: 16px; width: 100%; }
+
+@media (prefers-reduced-motion: reduce) {
+  .rm-backdrop,
+  .rm-window { animation: none; }
+}

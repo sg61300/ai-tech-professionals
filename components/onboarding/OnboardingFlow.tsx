@@ -15,6 +15,7 @@ import { saveOnboarding } from "@/app/onboarding/actions";
 import { trackLockedLevelTapped, trackProfessionInterest } from "@/app/actions/telemetry";
 import { RuneLoader } from "@/components/brand/RuneLoader";
 import { LessonPath, L1_PREVIEW_PATH } from "@/components/brand/LessonPath";
+import { ReferralApplyModal } from "@/components/referral/ReferralApplyModal";
 
 type Initial = {
   name: string;
@@ -52,11 +53,14 @@ export function OnboardingFlow({
   startStep,
   initial,
   saveAction = saveOnboarding,
+  alreadyReferred = false,
 }: {
   startStep: OnboardingStep;
   initial: Initial;
   /** Injectable so the local visual-preview harness (and tests) can stub persistence. */
   saveAction?: typeof saveOnboarding;
+  /** True when this user was already attributed via an invite link — skip the code prompt. */
+  alreadyReferred?: boolean;
 }) {
   // "coming-soon" is a transient sub-view of the level step, not a persisted step.
   const [step, setStep] = useState<OnboardingStep | "coming-soon">(startStep);
@@ -69,6 +73,9 @@ export function OnboardingFlow({
   const [comingSoon, setComingSoon] = useState<LockedLevel | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // First-signup referral prompt: shown over the "building" beat once onboarding
+  // completes, unless the user was already attributed via an invite link.
+  const [showReferral, setShowReferral] = useState(false);
 
   // Timezone captured once, client-side, to persist with the final step.
   const [timezone, setTimezone] = useState("Asia/Kolkata");
@@ -116,20 +123,54 @@ export function OnboardingFlow({
     if (ok) setStep("level");
   }
 
+  // Finish onboarding: mark it complete and enter the app. Called AFTER the
+  // referral modal is done (or immediately when the user was already referred).
+  //
+  // Why onboarding_complete is set HERE and not with the level fields: persisting
+  // onboarding_complete flips firstUnfinishedStep() to null, so the next render of
+  // the /onboarding server page redirect()s to /learn. saveOnboarding is a
+  // mutating server action (it revalidatePath("/learn")), so completing it makes
+  // Next auto-refresh THIS route — /onboarding re-renders and redirect()s to /learn
+  // on its own. That single server-driven navigation is what carries us into the
+  // app. We must NOT also window.location.assign("/learn") here: that second,
+  // redundant navigation raced the redirect and showed the RuneLoader twice (the
+  // "loader appears twice" bug). Setting the flag only at finish also keeps the
+  // redirect from unmounting the referral modal before it can show.
+  async function finishOnboarding() {
+    // Reveal the "Cooking up your path…" loader immediately so the screen shows
+    // progress while the completion save + server redirect run.
+    setShowReferral(false);
+    setStep("building");
+    // On success the server action's revalidate → /onboarding redirect → /learn
+    // navigates us in; no manual nav. On failure, surface the error (back to the
+    // level step) instead of stranding the user on the building loader.
+    if (!(await persist({ onboarding_complete: true }))) setStep("level");
+  }
+
+  // Reach the "building" beat: level saved but onboarding NOT yet complete, so the
+  // page won't redirect. Then show the referral prompt (first signup) unless the
+  // user already came in via an invite link, in which case just finish.
+  async function afterLevelBeat() {
+    const minBeat = new Promise((r) => setTimeout(r, 1500));
+    await minBeat;
+    if (alreadyReferred) {
+      await finishOnboarding();
+    } else {
+      setShowReferral(true);
+    }
+  }
+
   async function fromLevel() {
     if (levelPhase < 3 || !seniority || aiLevel !== "l1") return;
     setStep("building");
+    // Persist level data only (NOT onboarding_complete — see finishOnboarding).
     const ok = await persist({
       seniority: seniority as never,
       ai_proficiency: "l1",
       timezone,
-      onboarding_complete: true,
     });
-    // Reveal beat, then hard nav so /learn reads the fresh completed profile.
-    const minBeat = new Promise((r) => setTimeout(r, 1500));
-    await minBeat;
     if (ok) {
-      window.location.assign("/learn");
+      await afterLevelBeat();
     } else {
       setStep("level"); // save failed, let them retry
     }
@@ -143,11 +184,9 @@ export function OnboardingFlow({
       seniority: (seniority ?? "entry") as never,
       ai_proficiency: "l1",
       timezone,
-      onboarding_complete: true,
     });
-    await new Promise((r) => setTimeout(r, 1500));
     if (ok) {
-      window.location.assign("/learn");
+      await afterLevelBeat();
     } else {
       setStep("level");
     }
@@ -444,7 +483,7 @@ export function OnboardingFlow({
     );
   }
 
-  // building
+  // building (+ first-signup referral prompt over it once complete)
   return (
     <main className="ob-screen">
       <div className="ob-building">
@@ -452,6 +491,7 @@ export function OnboardingFlow({
         <h2 style={{ marginTop: 8 }}>Cooking up your path… 🍳</h2>
         <p className="hint">Assembling your personalized Level 1 map.</p>
       </div>
+      {showReferral && <ReferralApplyModal onDone={finishOnboarding} />}
     </main>
   );
 }

@@ -13,6 +13,7 @@
   font-size: 13px;
   line-height: 1.9;
   color: var(--muted-foreground);
+  overflow-wrap: anywhere; /* long assembled values wrap instead of overflowing */
 }
 .ts-bar b {
   font-family: var(--font-mono), ui-monospace, monospace;
@@ -23,7 +24,12 @@
   border: 1px solid color-mix(in srgb, var(--teal) 22%, transparent);
   padding: 1px 7px;
   border-radius: 6px;
-  white-space: nowrap;
+  /* Wrap long token values within the card; box-decoration-break keeps the
+     chip's bg/border/padding intact on each wrapped line. */
+  white-space: normal;
+  overflow-wrap: anywhere;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
 }
 .ts-part {
   white-space: normal;

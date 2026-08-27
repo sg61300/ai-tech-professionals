@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { civilDateInTz } from "@/lib/streak";
-import { addDaysIso, assessStreakRisk } from "@/lib/streakinsurance";
+import { addDaysIso, assessStreakRisk, STREAK_SAVE_WINDOW_DAYS } from "@/lib/streakinsurance";
 import { StreakCalendar } from "@/components/streak/StreakCalendar";
 import { TabBar } from "@/components/app/TabBar";
 import { reelsHasNew } from "@/lib/reels/newness";
@@ -64,6 +64,10 @@ export default async function StreakPage({
     const sd = row.saved_date as string;
     for (let k = 1; k <= (row.gap_days as number); k++) savedDates.push(addDaysIso(sd, -k));
   }
+  // Saves bought in the rolling window drive the weekly cap (Q7). Derived from
+  // the rows already fetched — no extra query.
+  const windowStart = addDaysIso(today, -(STREAK_SAVE_WINDOW_DAYS - 1));
+  const savesInWindow = (saveRows ?? []).filter((r) => (r.saved_date as string) >= windowStart).length;
 
   const reelsNew = await reelsHasNew(supabase, user.id);
 
@@ -75,6 +79,7 @@ export default async function StreakPage({
     timeZone: tz,
     currentStreak: profile?.streak_count ?? 0,
     xp: profile?.xp ?? 0,
+    savesInWindow,
   });
 
   return (
@@ -88,7 +93,7 @@ export default async function StreakPage({
         backHref={backHref}
         savedDates={savedDates}
         risk={
-          risk.atRisk
+          risk.canSave
             ? {
                 streak: risk.streak,
                 missedDays: risk.missedDays,

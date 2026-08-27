@@ -2,15 +2,17 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { verifyOtpAction } from './actions';
 import { Button } from '@/components/ui/button';
 import { RuneMascot } from '@/components/brand/RuneMascot';
 import { RuneLoader } from '@/components/brand/RuneLoader';
 
 /**
  * Login / OTP (activation spine, Slice 0). Code flow: email -> Supabase emails a
- * 6-digit code -> user types it in THIS tab -> verifyOtp -> full-page nav to
- * /learn (so the server reads the fresh session cookie on the first request).
- * While a request is in flight we show the enlarged "Rune is Tuning" loader.
+ * 6-digit code -> user types it in THIS tab -> a SERVER ACTION verifies the code
+ * (setting the session cookie server-side) and redirect()s to the right screen.
+ * That single soft navigation hands this loader straight to the destination's
+ * loading.tsx with no page reload — one continuous "Rune is Tuning" loader.
  */
 function GoogleIcon() {
   return (
@@ -77,20 +79,15 @@ export default function LoginPage() {
     e.preventDefault();
     setBusy(true);
     setError(null);
-    const supabase = createClient();
-    const { error } = await supabase.auth.verifyOtp({
-      email: email.trim(),
-      token: code.trim(),
-      type: 'email',
-    });
-    if (error) {
+    // The server action verifies the code, sets the session cookie server-side,
+    // and redirect()s to the right screen — a single soft navigation. It only
+    // returns here on failure (success throws the redirect and navigates away),
+    // so we keep the loader up until then.
+    const res = await verifyOtpAction(email.trim(), code.trim());
+    if (res?.error) {
       setBusy(false);
-      return setError(error.message);
+      setError(res.error);
     }
-    // Full-page navigation so the server sees the just-written session cookie on
-    // the first request (soft router.replace raced it -> needed a 2nd click).
-    // Stay busy (loader shown) through the redirect.
-    window.location.assign('/learn');
   }
 
   async function google() {
@@ -103,11 +100,13 @@ export default function LoginPage() {
     if (error) setError(error.message);
   }
 
-  // Enlarged loader while any auth request is in flight.
+  // Loader while any auth request is in flight. Size matches the app-wide route
+  // loaders (200) so the login → /learn hard-nav hands off to /learn's loader
+  // without the loader visibly resizing (which read as "loading twice").
   if (busy) {
     return (
       <main className="mx-auto flex w-full max-w-sm flex-1 flex-col items-center justify-center px-6 py-10">
-        <RuneLoader size={240} />
+        <RuneLoader size={200} />
       </main>
     );
   }
@@ -195,7 +194,7 @@ export default function LoginPage() {
       <Button
         variant="outline"
         onClick={google}
-        className="w-full gap-2 border-border bg-card font-semibold shadow-sm transition-all hover:border-[color:var(--teal)] hover:bg-[color:var(--teal-tint)] hover:shadow-md dark:bg-card"
+        className="w-full gap-2 border border-[#dadce0] bg-white font-semibold text-[#1f1f1f] shadow-sm transition-all hover:bg-[#f6f7f9] hover:shadow-md active:bg-[#e6e9ec] active:scale-[0.99] dark:border-[#5f6368] dark:bg-[#2a2e35] dark:text-white dark:hover:bg-[#343941] dark:active:bg-[#3e444e]"
       >
         <GoogleIcon />
         Continue with Google
