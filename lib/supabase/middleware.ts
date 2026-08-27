@@ -51,6 +51,7 @@ export async function updateSession(request: NextRequest) {
   const isPublic =
     isAuthRoute ||
     pathname.startsWith("/auth") || // OAuth/OTP callback
+    pathname.startsWith("/api/cron") || // Vercel Cron invocations — the route self-guards with CRON_SECRET; without this the auth redirect below bounces the cron to /login and it never runs
     (process.env.NODE_ENV !== "production" && pathname.startsWith("/dev-preview")) || // dev-only visual QA harness
     pathname === "/";
 
