@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { deleteArtifact } from "@/app/(app)/profile/actions";
+import { SavedReelsCarousel, type ReelItem } from "./SavedReelsCarousel";
 
 export type Artifact = {
   id: number;
@@ -22,14 +23,18 @@ const SOURCE_LABEL: Record<string, string> = {
 const VISIBLE = 4;
 
 /**
- * The "second brain" viewer (PRD/16 §2). Lists everything the user has produced
- * or saved, each with copy + delete. Saved reels render as compact single-line
- * rows (icon + title link, no bulky URL) so a big collection stays light, and
- * the whole list collapses to the first few with a "Show all" toggle. Delete is
- * optimistic against a server action; copy uses the clipboard with a flash.
+ * The "second brain" viewer (PRD/16 §2). Saved reels are pulled out into a 3D
+ * coverflow launcher (view-only — un-save happens back in the /reels feed); the
+ * user's own outputs (taste/email/system artifacts) render as cards below it,
+ * each with copy + delete. Delete is optimistic against a server action; copy
+ * uses the clipboard with a flash. The list collapses to the first few.
  */
 export function SavedArtifacts({ items }: { items: Artifact[] }) {
-  const [list, setList] = useState(items);
+  const reels: ReelItem[] = items
+    .filter((a) => a.source_sim === "reel")
+    .map((a) => ({ id: a.id, title: a.title, url: a.body }));
+
+  const [list, setList] = useState(items.filter((a) => a.source_sim !== "reel"));
   const [copiedId, setCopiedId] = useState<number | null>(null);
   const [expanded, setExpanded] = useState(false);
 
@@ -48,7 +53,7 @@ export function SavedArtifacts({ items }: { items: Artifact[] }) {
     await deleteArtifact(id);
   };
 
-  if (list.length === 0) {
+  if (reels.length === 0 && list.length === 0) {
     return (
       <div className="pf-empty">
         <span aria-hidden>🧠</span>
@@ -61,34 +66,11 @@ export function SavedArtifacts({ items }: { items: Artifact[] }) {
 
   return (
     <>
-      <ul className="pf-arts">
-        {shown.map((a) => {
-          const isReel = a.source_sim === "reel";
+      <SavedReelsCarousel reels={reels} />
 
-          // Compact reel row: icon + title link only (no raw URL).
-          if (isReel) {
-            return (
-              <li key={a.id} className="pf-art pf-art-reel">
-                <a className="pf-reel-main" href={a.body} target="_blank" rel="noopener noreferrer">
-                  <span className="pf-reel-ico" aria-hidden>▶</span>
-                  <span className="pf-reel-title">{a.title}</span>
-                </a>
-                <div className="pf-art-actions">
-                  <button
-                    type="button"
-                    className="pf-art-del"
-                    onClick={() => remove(a.id)}
-                    aria-label="Delete"
-                  >
-                    🗑
-                  </button>
-                </div>
-              </li>
-            );
-          }
-
-          // Full artifact card: the user's own output, worth a preview.
-          return (
+      {list.length > 0 && (
+        <ul className="pf-arts">
+          {shown.map((a) => (
             <li key={a.id} className="pf-art">
               <div className="pf-art-main">
                 <span className="pf-art-src">{SOURCE_LABEL[a.source_sim ?? ""] ?? "Saved"}</span>
@@ -109,9 +91,9 @@ export function SavedArtifacts({ items }: { items: Artifact[] }) {
                 </button>
               </div>
             </li>
-          );
-        })}
-      </ul>
+          ))}
+        </ul>
+      )}
 
       {list.length > VISIBLE && (
         <button type="button" className="pf-art-more" onClick={() => setExpanded((v) => !v)}>
