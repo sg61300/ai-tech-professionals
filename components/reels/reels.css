@@ -116,7 +116,6 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .reel-frame { transition: none; }
-  /* No spin under reduced motion — pulse opacity instead so it still reads as busy. */
   .reel-spinner { animation: reel-pulse 1.2s ease-in-out infinite; border-top-color: rgba(255, 255, 255, 0.28); }
 }
 @keyframes reel-pulse {
