@@ -91,6 +91,10 @@ export function ReelsFeed({
   const scrollerRef = useRef<HTMLDivElement>(null);
   const sectionRefs = useRef<(HTMLElement | null)[]>([]);
   const activeFrameRef = useRef<HTMLIFrameElement | null>(null);
+  // The window of the reel we're leaving, so we can mute it on scroll — on a
+  // BACKWARD scroll it becomes the preloaded (active+1) frame and would otherwise
+  // keep playing with its sound on.
+  const lastActiveWinRef = useRef<Window | null>(null);
   const watchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -132,6 +136,17 @@ export function ReelsFeed({
   }, []);
 
   useEffect(() => {
+    // Mute the reel we're leaving. Forward it's about to unmount (no-op); backward
+    // it becomes the preloaded frame and must go silent so we don't hear two reels.
+    const leaving = lastActiveWinRef.current;
+    if (leaving) {
+      try {
+        leaving.postMessage(JSON.stringify({ event: "command", func: "mute", args: [] }), "*");
+      } catch {
+        /* window already detached (forward unmount) — ignore */
+      }
+    }
+
     activeRef.current = active;
     activeSince.current = Date.now();
     // A preloaded reel that already played won't re-fire PLAYING, so reveal +
@@ -149,6 +164,8 @@ export function ReelsFeed({
     // Safety net: a reel must never stay stuck on the spinner even if no PLAYING
     // message ever arrives (rare). By 3s a warm/normal reel is playing.
     const safety = setTimeout(() => setRevealedIdx(activeRef.current), 3000);
+    // Remember the now-active window so we can mute it when we later leave it.
+    lastActiveWinRef.current = activeFrameRef.current?.contentWindow ?? null;
     return () => {
       clearTimeout(quick);
       clearTimeout(safety);
