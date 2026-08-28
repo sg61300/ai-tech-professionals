@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { REEL_WATCH_MS } from "@/lib/reels";
+import { parseYouTubePlayerState, YT_STATE_PLAYING } from "@/lib/reels/player";
 import { trackReelsOpened, trackReelsScreenTime } from "@/app/actions/telemetry";
 import "./reels.css";
 
@@ -49,6 +50,12 @@ export function ReelsFeed({
   onWatch,
 }: ReelsFeedProps) {
   const [active, setActive] = useState(0);
+  // Index whose player has actually started PLAYING. Until the active reel's
+  // player fires PLAYING we show its poster thumbnail (over which the iframe
+  // then fades in) instead of a black frame — deriving `revealed` from this
+  // avoids a reset-on-active-change setState-in-effect.
+  const [revealedIdx, setRevealedIdx] = useState<number | null>(null);
+  const activeRef = useRef(0);
   const [liked, setLiked] = useState<Set<number>>(new Set(initialLiked));
   const [saved, setSaved] = useState<Set<number>>(new Set(initialSaved));
   const [shared, setShared] = useState<Set<number>>(new Set());
@@ -63,11 +70,12 @@ export function ReelsFeed({
   const sectionRefs = useRef<(HTMLElement | null)[]>([]);
   const activeFrameRef = useRef<HTMLIFrameElement | null>(null);
   const watchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const flash = useCallback((msg: string) => {
     setToast(msg);
-    window.clearTimeout((flash as unknown as { t?: number }).t);
-    (flash as unknown as { t?: number }).t = window.setTimeout(() => setToast(null), 2200);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), 2200);
   }, []);
 
   // Track which reel is in view → single active player.
@@ -86,6 +94,23 @@ export function ReelsFeed({
     sectionRefs.current.forEach((el) => el && io.observe(el));
     return () => io.disconnect();
   }, [reels.length]);
+
+  // The active player streams state over postMessage (we subscribe via the
+  // "listening" handshake in killCaptions). Reveal the iframe the moment it
+  // actually starts PLAYING so the poster shows during the cold-start instead
+  // of a black frame.
+  useEffect(() => {
+    activeRef.current = active;
+  }, [active]);
+
+  useEffect(() => {
+    const onMsg = (e: MessageEvent) => {
+      if (typeof e.origin === "string" && !e.origin.includes("youtube")) return;
+      if (parseYouTubePlayerState(e.data) === YT_STATE_PLAYING) setRevealedIdx(activeRef.current);
+    };
+    window.addEventListener("message", onMsg);
+    return () => window.removeEventListener("message", onMsg);
+  }, []);
 
   // "Watched" → capped XP after the dwell threshold on the active reel.
   useEffect(() => {
@@ -293,23 +318,23 @@ export function ReelsFeed({
             }}
           >
             <div className="reel-media">
-              {isActive ? (
+              {/* Poster always sits behind; the active iframe fades in over it
+                  once the player is actually PLAYING (no black cold-start frame). */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                className="reel-poster"
+                src={`https://i.ytimg.com/vi/${reel.youtubeId}/hqdefault.jpg`}
+                alt={reel.title}
+                loading="lazy"
+              />
+              {isActive && (
                 <iframe
                   ref={activeFrameRef}
-                  className="reel-frame"
+                  className={`reel-frame${i === active && revealedIdx === active ? " reveal" : ""}`}
                   src={`https://www.youtube.com/embed/${reel.youtubeId}?autoplay=1&mute=1&playsinline=1&rel=0&modestbranding=1&loop=1&playlist=${reel.youtubeId}&controls=0&cc_load_policy=0&iv_load_policy=3&fs=0&disablekb=1&enablejsapi=1`}
                   title={reel.title}
                   allow="autoplay; encrypted-media; picture-in-picture"
-                  loading="lazy"
                   onLoad={killCaptions}
-                />
-              ) : (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  className="reel-poster"
-                  src={`https://i.ytimg.com/vi/${reel.youtubeId}/hqdefault.jpg`}
-                  alt={reel.title}
-                  loading="lazy"
                 />
               )}
             </div>

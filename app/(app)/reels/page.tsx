@@ -50,6 +50,9 @@ export default async function ReelsPage() {
   // Fisher-Yates shuffle (server-side, per request) for a random feed order.
   const reels: Reel[] = [...mapped];
   for (let i = reels.length - 1; i > 0; i--) {
+    // Server component, per-request shuffle — Math.random is intentional here
+    // (the react-hooks/purity rule targets client renders, not server code).
+    // eslint-disable-next-line react-hooks/purity
     const j = Math.floor(Math.random() * (i + 1));
     [reels[i], reels[j]] = [reels[j], reels[i]];
   }
@@ -83,8 +86,15 @@ export default async function ReelsPage() {
   await markReelsSeen(supabase, user.id);
 
   return (
-    <div className="lh">
-      <ReelsFeed
+    <>
+      {/* Warm up the TLS/DNS handshakes to YouTube's player host + thumbnail CDN so
+          the first reel's embed starts a beat sooner (React hoists these to <head>).
+          The actual video stream is served from a per-video googlevideo.com host
+          whose name we can't predict, so we don't preconnect that one. */}
+      <link rel="preconnect" href="https://www.youtube.com" />
+      <link rel="preconnect" href="https://i.ytimg.com" />
+      <div className="lh">
+        <ReelsFeed
         reels={reels}
         initialLiked={pick("like")}
         initialSaved={pick("save")}
@@ -92,7 +102,8 @@ export default async function ReelsPage() {
         onToggle={toggle}
         onWatch={watch}
       />
-      <TabBar avatarKey={profile?.avatar_key} reelsNew={false} />
-    </div>
+        <TabBar avatarKey={profile?.avatar_key} reelsNew={false} />
+      </div>
+    </>
   );
 }
