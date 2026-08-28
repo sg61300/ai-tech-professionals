@@ -57,7 +57,6 @@ export function ReelsFeed({
   // avoids a reset-on-active-change setState-in-effect.
   const [revealedIdx, setRevealedIdx] = useState<number | null>(null);
   const activeRef = useRef(0);
-  const activeSince = useRef(0);
   // Player windows that have already reported PLAYING (incl. a muted preloaded
   // reel). Lets us reveal + unmute a preloaded reel the instant it becomes active,
   // since it won't re-fire PLAYING.
@@ -148,15 +147,12 @@ export function ReelsFeed({
     }
 
     activeRef.current = active;
-    activeSince.current = Date.now();
     // A preloaded reel that already played won't re-fire PLAYING, so reveal +
     // apply sound the instant it becomes active. (setState inside the timeout,
     // not the effect body, to avoid a synchronous setState-in-effect.)
     const quick = setTimeout(() => {
       const win = activeFrameRef.current?.contentWindow;
-      const warm = !!win && playedWindows.current.has(win);
-      console.log(`[reelperf] active=${activeRef.current} warm=${warm}`);
-      if (warm) {
+      if (win && playedWindows.current.has(win)) {
         setRevealedIdx(activeRef.current);
         applySoundTo(win);
       }
@@ -180,12 +176,8 @@ export function ReelsFeed({
       if (parseYouTubePlayerState(e.data) !== YT_STATE_PLAYING) return;
       if (e.source) playedWindows.current.add(e.source);
       if (e.source !== activeFrameRef.current?.contentWindow) return;
-      console.log(`[reelperf] active=${activeRef.current} playing +${Date.now() - activeSince.current}ms`);
       setRevealedIdx(activeRef.current);
-      if (!mutedRef.current) {
-        console.log(`[reelperf] unmute active=${activeRef.current}`);
-        applySoundTo(e.source);
-      }
+      if (!mutedRef.current) applySoundTo(e.source);
     };
     window.addEventListener("message", onMsg);
     return () => window.removeEventListener("message", onMsg);
