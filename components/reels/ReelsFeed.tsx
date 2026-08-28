@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { REEL_WATCH_MS } from "@/lib/reels";
 import { parseYouTubePlayerState, YT_STATE_PLAYING } from "@/lib/reels/player";
+import { shouldPreloadNext, type NetworkInfoLike } from "@/lib/reels/preload";
 import { trackReelsOpened, trackReelsScreenTime } from "@/app/actions/telemetry";
 import "./reels.css";
 
@@ -66,11 +67,30 @@ export function ReelsFeed({
   const watched = useRef<Set<number>>(new Set(watchedIds));
   const mutedRef = useRef(true);
 
+  // Adaptive preload: warm the NEXT reel's player so it starts near-instantly,
+  // but only on a capable connection (skip on 2g / Data Saver). `isClient` gates
+  // it to after hydration so the preloaded iframe isn't in the server HTML.
+  const isClient = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
+  const [connAllowsPreload] = useState(() =>
+    typeof navigator === "undefined"
+      ? true
+      : shouldPreloadNext((navigator as unknown as { connection?: NetworkInfoLike }).connection),
+  );
+  const preloadOn = isClient && connAllowsPreload;
+
   const scrollerRef = useRef<HTMLDivElement>(null);
   const sectionRefs = useRef<(HTMLElement | null)[]>([]);
   const activeFrameRef = useRef<HTMLIFrameElement | null>(null);
   const watchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Player windows that have already fired PLAYING (incl. a muted preloaded reel),
+  // so when one becomes active we can reveal it instantly instead of waiting for a
+  // PLAYING event it won't re-fire.
+  const playedWindows = useRef<Set<MessageEventSource>>(new Set());
 
   const flash = useCallback((msg: string) => {
     setToast(msg);
@@ -99,14 +119,40 @@ export function ReelsFeed({
   // "listening" handshake in killCaptions). Reveal the iframe the moment it
   // actually starts PLAYING so the poster shows during the cold-start instead
   // of a black frame.
+  // On becoming active: apply the user's sound choice (a preloaded reel was
+  // playing muted), and if this frame ALREADY played while preloading, reveal it
+  // right away (it won't re-fire PLAYING). Otherwise the message listener reveals
+  // it when its player first reports PLAYING. We never blind-reveal: if a reel is
+  // genuinely still loading it keeps showing the poster + spinner, never black.
   useEffect(() => {
     activeRef.current = active;
+    const applySound = () => {
+      const win = activeFrameRef.current?.contentWindow;
+      if (!win) return;
+      const post = (func: string, args: unknown[] = []) =>
+        win.postMessage(JSON.stringify({ event: "command", func, args }), "*");
+      post(mutedRef.current ? "mute" : "unMute");
+      if (!mutedRef.current) post("setVolume", [100]);
+    };
+    const soundTimers = [0, 300, 900].map((t) => setTimeout(applySound, t));
+    const quickReveal = setTimeout(() => {
+      const win = activeFrameRef.current?.contentWindow;
+      if (win && playedWindows.current.has(win)) setRevealedIdx(activeRef.current);
+    }, 60);
+    return () => {
+      soundTimers.forEach(clearTimeout);
+      clearTimeout(quickReveal);
+    };
   }, [active]);
 
+  // Track every player that reaches PLAYING (by its source window). Reveal the
+  // active iframe (over its poster) the moment ITS player plays; matching
+  // e.source keeps a muted preloaded reel from prematurely revealing a black frame.
   useEffect(() => {
     const onMsg = (e: MessageEvent) => {
-      if (typeof e.origin === "string" && !e.origin.includes("youtube")) return;
-      if (parseYouTubePlayerState(e.data) === YT_STATE_PLAYING) setRevealedIdx(activeRef.current);
+      if (parseYouTubePlayerState(e.data) !== YT_STATE_PLAYING) return;
+      if (e.source) playedWindows.current.add(e.source);
+      if (e.source === activeFrameRef.current?.contentWindow) setRevealedIdx(activeRef.current);
     };
     window.addEventListener("message", onMsg);
     return () => window.removeEventListener("message", onMsg);
@@ -327,16 +373,23 @@ export function ReelsFeed({
                 alt={reel.title}
                 loading="lazy"
               />
-              {isActive && (
+              {/* Render the active reel AND (on capable connections) the next one
+                  to warm its player. Both use the same autoplay=1 src so becoming
+                  active never reloads the iframe; the preloaded one plays muted and
+                  off-screen (poster covers it until it's the active, revealed reel). */}
+              {(isActive || (preloadOn && i === active + 1)) && (
                 <iframe
-                  ref={activeFrameRef}
-                  className={`reel-frame${i === active && revealedIdx === active ? " reveal" : ""}`}
+                  ref={isActive ? activeFrameRef : null}
+                  className={`reel-frame${isActive && revealedIdx === active ? " reveal" : ""}`}
                   src={`https://www.youtube.com/embed/${reel.youtubeId}?autoplay=1&mute=1&playsinline=1&rel=0&modestbranding=1&loop=1&playlist=${reel.youtubeId}&controls=0&cc_load_policy=0&iv_load_policy=3&fs=0&disablekb=1&enablejsapi=1`}
                   title={reel.title}
                   allow="autoplay; encrypted-media; picture-in-picture"
                   onLoad={killCaptions}
                 />
               )}
+              {/* Loading spinner over the poster until the active reel plays, so a
+                  slow connection reads as "loading", not "stuck". */}
+              {isActive && revealedIdx !== active && <div className="reel-spinner" aria-hidden />}
             </div>
 
             <div className="reel-shade" />

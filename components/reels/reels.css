@@ -94,8 +94,34 @@
   transition: opacity 0.28s ease;
 }
 .reel-frame.reveal { opacity: 1; }
+
+/* Loading spinner shown over the poster until the reel starts playing. */
+.reel-spinner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 44px;
+  height: 44px;
+  margin: -22px 0 0 -22px;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.28);
+  border-top-color: rgba(255, 255, 255, 0.95);
+  animation: reel-spin 0.8s linear infinite;
+  pointer-events: none;
+  z-index: 2;
+  filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.5));
+}
+@keyframes reel-spin {
+  to { transform: rotate(360deg); }
+}
 @media (prefers-reduced-motion: reduce) {
   .reel-frame { transition: none; }
+  /* No spin under reduced motion — pulse opacity instead so it still reads as busy. */
+  .reel-spinner { animation: reel-pulse 1.2s ease-in-out infinite; border-top-color: rgba(255, 255, 255, 0.28); }
+}
+@keyframes reel-pulse {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
 }
 
 /* Legibility gradient behind the overlays. */
