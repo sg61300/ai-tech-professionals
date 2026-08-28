@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { REEL_WATCH_MS } from "@/lib/reels";
 import { parseYouTubePlayerState, YT_STATE_PLAYING } from "@/lib/reels/player";
+import { shouldPreloadNext, type NetworkInfoLike } from "@/lib/reels/preload";
 import { trackReelsOpened, trackReelsScreenTime } from "@/app/actions/telemetry";
 import "./reels.css";
 
@@ -56,6 +57,27 @@ export function ReelsFeed({
   // avoids a reset-on-active-change setState-in-effect.
   const [revealedIdx, setRevealedIdx] = useState<number | null>(null);
   const activeRef = useRef(0);
+  const activeSince = useRef(0);
+  // Player windows that have already reported PLAYING (incl. a muted preloaded
+  // reel). Lets us reveal + unmute a preloaded reel the instant it becomes active,
+  // since it won't re-fire PLAYING.
+  const playedWindows = useRef<Set<MessageEventSource>>(new Set());
+
+  // Adaptive preload of the NEXT reel's player (one ahead), skipped on 2g / Data
+  // Saver. Gated behind an isClient snapshot so the preloaded iframe isn't in the
+  // server HTML (no hydration mismatch).
+  const isClient = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
+  const [connAllowsPreload] = useState(() =>
+    typeof navigator === "undefined"
+      ? true
+      : shouldPreloadNext((navigator as unknown as { connection?: NetworkInfoLike }).connection),
+  );
+  const preloadOn = isClient && connAllowsPreload;
+
   const [liked, setLiked] = useState<Set<number>>(new Set(initialLiked));
   const [saved, setSaved] = useState<Set<number>>(new Set(initialSaved));
   const [shared, setShared] = useState<Set<number>>(new Set());
@@ -99,31 +121,58 @@ export function ReelsFeed({
   // "listening" handshake in killCaptions). Reveal the iframe the moment it
   // actually starts PLAYING so the poster shows during the cold-start instead
   // of a black frame.
-  useEffect(() => {
-    activeRef.current = active;
-  }, [active]);
+  // Apply the user's sound choice to a frame's player (unMute a PLAYING video is
+  // allowed; nothing re-mutes it now). Only ever called for the ACTIVE frame.
+  const applySoundTo = useCallback((win: MessageEventSource | null | undefined) => {
+    if (!win || mutedRef.current) return;
+    const post = (func: string, args: unknown[] = []) =>
+      (win as Window).postMessage(JSON.stringify({ event: "command", func, args }), "*");
+    post("unMute");
+    post("setVolume", [100]);
+  }, []);
 
   useEffect(() => {
+    activeRef.current = active;
+    activeSince.current = Date.now();
+    // A preloaded reel that already played won't re-fire PLAYING, so reveal +
+    // apply sound the instant it becomes active. (setState inside the timeout,
+    // not the effect body, to avoid a synchronous setState-in-effect.)
+    const quick = setTimeout(() => {
+      const win = activeFrameRef.current?.contentWindow;
+      const warm = !!win && playedWindows.current.has(win);
+      console.log(`[reelperf] active=${activeRef.current} warm=${warm}`);
+      if (warm) {
+        setRevealedIdx(activeRef.current);
+        applySoundTo(win);
+      }
+    }, 60);
+    // Safety net: a reel must never stay stuck on the spinner even if no PLAYING
+    // message ever arrives (rare). By 3s a warm/normal reel is playing.
+    const safety = setTimeout(() => setRevealedIdx(activeRef.current), 3000);
+    return () => {
+      clearTimeout(quick);
+      clearTimeout(safety);
+    };
+  }, [active, applySoundTo]);
+
+  // Every player that reaches PLAYING is recorded (so a preloaded one can reveal
+  // instantly on activation). But we reveal + unmute ONLY the active frame — a
+  // muted preloaded player must never be unmuted, or you'd hear two reels.
+  useEffect(() => {
     const onMsg = (e: MessageEvent) => {
-      if (typeof e.origin === "string" && !e.origin.includes("youtube")) return;
       if (parseYouTubePlayerState(e.data) !== YT_STATE_PLAYING) return;
+      if (e.source) playedWindows.current.add(e.source);
+      if (e.source !== activeFrameRef.current?.contentWindow) return;
+      console.log(`[reelperf] active=${activeRef.current} playing +${Date.now() - activeSince.current}ms`);
       setRevealedIdx(activeRef.current);
-      // Now that it's actually playing, apply the user's sound choice. Unmuting a
-      // PLAYING video is allowed (and nothing re-mutes it now), whereas unmuting
-      // during load trips the autoplay policy.
       if (!mutedRef.current) {
-        const post = (func: string, args: unknown[] = []) =>
-          (e.source as Window | null)?.postMessage(
-            JSON.stringify({ event: "command", func, args }),
-            "*",
-          );
-        post("unMute");
-        post("setVolume", [100]);
+        console.log(`[reelperf] unmute active=${activeRef.current}`);
+        applySoundTo(e.source);
       }
     };
     window.addEventListener("message", onMsg);
     return () => window.removeEventListener("message", onMsg);
-  }, []);
+  }, [applySoundTo]);
 
   // "Watched" → capped XP after the dwell threshold on the active reel.
   useEffect(() => {
@@ -342,10 +391,15 @@ export function ReelsFeed({
                 alt={reel.title}
                 loading="lazy"
               />
-              {isActive && (
+              {/* Render the active reel AND (on a capable connection) the next one
+                  to warm its player. Both use the same autoplay=1&mute=1 src so
+                  becoming active never reloads the iframe. The preloaded one plays
+                  MUTED, off-screen, behind its poster — nothing unmutes it (only the
+                  active frame is unmuted), so there's no second audio track. */}
+              {(isActive || (preloadOn && i === active + 1)) && (
                 <iframe
-                  ref={activeFrameRef}
-                  className={`reel-frame${i === active && revealedIdx === active ? " reveal" : ""}`}
+                  ref={isActive ? activeFrameRef : null}
+                  className={`reel-frame${isActive && revealedIdx === active ? " reveal" : ""}`}
                   src={`https://www.youtube.com/embed/${reel.youtubeId}?autoplay=1&mute=1&playsinline=1&rel=0&modestbranding=1&loop=1&playlist=${reel.youtubeId}&controls=0&cc_load_policy=0&iv_load_policy=3&fs=0&disablekb=1&enablejsapi=1`}
                   title={reel.title}
                   allow="autoplay; encrypted-media; picture-in-picture"
