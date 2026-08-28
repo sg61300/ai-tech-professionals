@@ -106,22 +106,17 @@ export function ReelsFeed({
   useEffect(() => {
     const onMsg = (e: MessageEvent) => {
       if (typeof e.origin === "string" && !e.origin.includes("youtube")) return;
-      const state = parseYouTubePlayerState(e.data);
-      if (state === null) return;
-      // [reeldiag] temporary instrumentation — remove after diagnosing playback.
-      console.log(`[reeldiag] playerState=${state} active=${activeRef.current} muted=${mutedRef.current}`);
-      if (state !== YT_STATE_PLAYING) return;
+      if (parseYouTubePlayerState(e.data) !== YT_STATE_PLAYING) return;
       setRevealedIdx(activeRef.current);
       // Now that it's actually playing, apply the user's sound choice. Unmuting a
-      // PLAYING video (after the user's scroll/tap gesture) is allowed, whereas
-      // unmuting during load is not.
+      // PLAYING video is allowed (and nothing re-mutes it now), whereas unmuting
+      // during load trips the autoplay policy.
       if (!mutedRef.current) {
         const post = (func: string, args: unknown[] = []) =>
           (e.source as Window | null)?.postMessage(
             JSON.stringify({ event: "command", func, args }),
             "*",
           );
-        console.log("[reeldiag] unmuting active reel post-play");
         post("unMute");
         post("setVolume", [100]);
       }
@@ -161,10 +156,11 @@ export function ReelsFeed({
         post({ event: "command", func: "unloadModule", args: [mod], id: 1, channel: "widget" });
         post({ event: "command", func: "setOption", args: [mod, "track", {}], id: 1, channel: "widget" });
       }
-      // ALWAYS load muted — a browser blocks audible autoplay without a gesture,
-      // so unmuting here pauses the video and it never starts. We unmute only
-      // AFTER it's actually playing (see the message listener), which is allowed.
-      post({ event: "command", func: "mute", args: [], id: 1, channel: "widget" });
+      // Do NOT mute/unmute here. The reel loads muted via the URL (mute=1), which
+      // is what allows autoplay; sound is owned by the toggle + the post-play
+      // unmute. This batch repeats 6× over 4s to kill captions on a slow player —
+      // re-sending `mute` here was clobbering the user's unmute (sound played for
+      // a moment, then went silent until a manual pause/play after the loop ended).
     };
     send();
     for (const t of [400, 900, 1600, 2600, 4000]) setTimeout(send, t);
