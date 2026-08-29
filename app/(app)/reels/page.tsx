@@ -4,6 +4,7 @@ import { ReelsFeed, type Reel } from "@/components/reels/ReelsFeed";
 import { toggleReelInteraction, recordReelWatch } from "./actions";
 import { TabBar } from "@/components/app/TabBar";
 import { markReelsSeen } from "@/lib/reels/newness";
+import { seededShuffle, feedSeed } from "@/lib/reels/order";
 
 export const dynamic = "force-dynamic";
 
@@ -47,15 +48,12 @@ export default async function ReelsPage() {
     topic: (r.topic as string) ?? null,
   }));
 
-  // Fisher-Yates shuffle (server-side, per request) for a random feed order.
-  const reels: Reel[] = [...mapped];
-  for (let i = reels.length - 1; i > 0; i--) {
-    // Server component, per-request shuffle — Math.random is intentional here
-    // (the react-hooks/purity rule targets client renders, not server code).
-    // eslint-disable-next-line react-hooks/purity
-    const j = Math.floor(Math.random() * (i + 1));
-    [reels[i], reels[j]] = [reels[j], reels[i]];
-  }
+  // Seed-STABLE shuffle for the feed order. A random-per-render order would
+  // reshuffle on every Server Action re-render (watch/like/save) and remount the
+  // reel-keyed <iframe>s — pausing the playing reel and starting another's audio.
+  // Seeding by (user, day) keeps the order steady across a session's re-renders
+  // while still rotating daily so older reels resurface. See lib/reels/order.
+  const reels: Reel[] = seededShuffle(mapped, feedSeed(user.id));
 
   const reelIds = reels.map((r) => r.id);
   const { data: interactions } = reelIds.length
