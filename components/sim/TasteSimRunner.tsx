@@ -35,7 +35,7 @@ export function TasteSimRunner({
 }: {
   sim: TasteSim;
   generateAction?: (input: unknown) => Promise<TasteGenResult>;
-  completeAction?: () => Promise<TasteCompleteResult>;
+  completeAction?: (input?: { email?: string }) => Promise<TasteCompleteResult>;
 }) {
   const router = useRouter();
   const [step, setStep] = useState<Step>("intro");
@@ -112,7 +112,7 @@ export function TasteSimRunner({
   }
 
   async function finish() {
-    const c = await completeAction();
+    const c = await completeAction({ email: emailText });
     setCompletion(c);
     setStep("celebrate");
   }

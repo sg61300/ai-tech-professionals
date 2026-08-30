@@ -10,6 +10,7 @@ import { buildScreenPrompt } from "@/lib/ai/prompts";
 import { guardInput } from "@/lib/inputguard";
 import { applyXp } from "@/lib/xp";
 import { computeStreak } from "@/lib/streak";
+import { ensureSimArtifact } from "@/lib/sim/artifact";
 import { biasSim } from "@/content";
 import {
   buildRankSchema,
@@ -115,6 +116,19 @@ export async function completeBiasSim(): Promise<BiasCompleteResult> {
     .maybeSingle();
   const alreadyDone = !!prior;
 
+  const fairRubric = [
+    "My fair screening rubric:",
+    ...biasSim.fixToggles.filter((t) => t.debiasing).map((t) => `- ${t.effect}`),
+  ].join("\n");
+
+  // Second-brain artifact — also on the already-done path, so re-finishing
+  // backfills a missing one.
+  const artifactId = await ensureSimArtifact(supabase, user.id, {
+    simId: biasSim.id,
+    title: "My fair screening rubric",
+    body: fairRubric,
+  });
+
   if (alreadyDone) {
     return {
       ok: true,
@@ -128,27 +142,11 @@ export async function completeBiasSim(): Promise<BiasCompleteResult> {
     };
   }
 
-  const fairRubric = [
-    "My fair screening rubric:",
-    ...biasSim.fixToggles.filter((t) => t.debiasing).map((t) => `- ${t.effect}`),
-  ].join("\n");
-
-  const { data: artifact } = await supabase
-    .from("saved_artifacts")
-    .insert({
-      user_id: user.id,
-      title: "My fair screening rubric",
-      source_sim: biasSim.id,
-      body: fairRubric,
-    })
-    .select("id")
-    .maybeSingle();
-
   await supabase.from("sim_completions").insert({
     user_id: user.id,
     sim_id: biasSim.id,
     is_full: true,
-    artifact_id: artifact?.id ?? null,
+    artifact_id: artifactId,
     rubric_json: { sim: biasSim.id },
   });
 

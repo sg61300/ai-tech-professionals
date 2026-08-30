@@ -7,6 +7,7 @@ import { captureServer } from "@/lib/analytics/server";
 import { EVENTS } from "@/lib/analytics/events";
 import { applyXp } from "@/lib/xp";
 import { computeStreak } from "@/lib/streak";
+import { ensureSimArtifact } from "@/lib/sim/artifact";
 import { systemSim } from "@/content";
 import { getSample, buildArtifactBody, validateGeneratedXray, closestPreset } from "@/lib/systemsim";
 import { callAI } from "@/lib/ai";
@@ -129,6 +130,14 @@ export async function completeSystemSim(input: unknown): Promise<SystemCompleteR
     .maybeSingle();
   const alreadyDone = !!prior;
 
+  // Second-brain artifact — also on the already-done path, so re-finishing
+  // backfills a missing one.
+  const artifactId = await ensureSimArtifact(supabase, user.id, {
+    simId: systemSim.id,
+    title: `${sample.label} X-ray`,
+    body: buildArtifactBody(sample),
+  });
+
   if (alreadyDone) {
     return {
       ok: true,
@@ -142,22 +151,11 @@ export async function completeSystemSim(input: unknown): Promise<SystemCompleteR
     };
   }
 
-  const { data: artifact } = await supabase
-    .from("saved_artifacts")
-    .insert({
-      user_id: user.id,
-      title: `${sample.label} X-ray`,
-      source_sim: systemSim.id,
-      body: buildArtifactBody(sample),
-    })
-    .select("id")
-    .maybeSingle();
-
   await supabase.from("sim_completions").insert({
     user_id: user.id,
     sim_id: systemSim.id,
     is_full: true,
-    artifact_id: artifact?.id ?? null,
+    artifact_id: artifactId,
     rubric_json: { sample: sample.id },
   });
 

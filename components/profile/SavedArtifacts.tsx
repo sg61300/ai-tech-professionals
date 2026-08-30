@@ -16,6 +16,7 @@ const SOURCE_LABEL: Record<string, string> = {
   "taste-sim": "Taste sim",
   "sim-email": "Inbox Tamer",
   "sim-system": "System X-Ray",
+  "sim-bias": "Bias Catcher",
   reel: "Saved reel",
 };
 

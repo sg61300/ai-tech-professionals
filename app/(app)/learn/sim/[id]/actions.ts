@@ -9,6 +9,7 @@ import { callAI } from "@/lib/ai";
 import { buildTastePrompt } from "@/lib/ai/prompts";
 import { applyXp } from "@/lib/xp";
 import { computeStreak } from "@/lib/streak";
+import { ensureSimArtifact } from "@/lib/sim/artifact";
 import { tasteSim } from "@/content";
 import { grantReferralReward } from "@/app/actions/referral";
 
@@ -71,7 +72,9 @@ export type TasteCompleteResult =
  * (sim_completions has no unique key). Badge is shown from content but not yet
  * persisted (no badges store until the Profile slice).
  */
-export async function completeTasteSim(): Promise<TasteCompleteResult> {
+export async function completeTasteSim(
+  input?: { email?: string },
+): Promise<TasteCompleteResult> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -94,6 +97,18 @@ export async function completeTasteSim(): Promise<TasteCompleteResult> {
     .maybeSingle();
   const alreadyDone = !!prior;
 
+  // Save the generated email to the second brain. The taste sim historically
+  // saved nothing, so it never appeared in the profile; this writes it (and
+  // backfills on the already-done path when the email is passed on re-finish).
+  const email = input?.email?.trim();
+  const artifactId = email
+    ? await ensureSimArtifact(supabase, user.id, {
+        simId: tasteSim.id,
+        title: "My AI-drafted email",
+        body: email,
+      })
+    : null;
+
   if (alreadyDone) {
     return {
       ok: true,
@@ -110,7 +125,7 @@ export async function completeTasteSim(): Promise<TasteCompleteResult> {
 
   await supabase
     .from("sim_completions")
-    .insert({ user_id: user.id, sim_id: tasteSim.id, is_full: false });
+    .insert({ user_id: user.id, sim_id: tasteSim.id, is_full: false, artifact_id: artifactId });
 
   const xpResult = applyXp(profile.xp, tasteSim.xp);
   const streakResult = computeStreak({

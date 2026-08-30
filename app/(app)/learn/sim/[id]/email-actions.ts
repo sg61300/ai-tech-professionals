@@ -10,6 +10,7 @@ import { callJsonAI } from "@/lib/ai/json";
 import { buildSortNarrationPrompt, buildInboxCoachPrompt } from "@/lib/ai/prompts";
 import { applyXp } from "@/lib/xp";
 import { computeStreak } from "@/lib/streak";
+import { ensureSimArtifact } from "@/lib/sim/artifact";
 import { emailSim } from "@/content";
 import { EMAIL_BUCKETS } from "@/content/schema";
 import {
@@ -181,6 +182,14 @@ export async function completeEmailSim(input: unknown): Promise<EmailCompleteRes
     .maybeSingle();
   const alreadyDone = !!prior;
 
+  // Save the compiled rulebook to the second brain (seeds Lesson 11). Runs on the
+  // already-done path too, so re-finishing backfills a missing artifact.
+  const artifactId = await ensureSimArtifact(supabase, user.id, {
+    simId: emailSim.id,
+    title: "My inbox sorter",
+    body: compilePrompt(emailSim, rules),
+  });
+
   if (alreadyDone) {
     return {
       ok: true,
@@ -196,23 +205,11 @@ export async function completeEmailSim(input: unknown): Promise<EmailCompleteRes
     };
   }
 
-  // Save the compiled rulebook to the second brain (seeds Lesson 11).
-  const { data: artifact } = await supabase
-    .from("saved_artifacts")
-    .insert({
-      user_id: user.id,
-      title: "My inbox sorter",
-      source_sim: emailSim.id,
-      body: compilePrompt(emailSim, rules),
-    })
-    .select("id")
-    .maybeSingle();
-
   await supabase.from("sim_completions").insert({
     user_id: user.id,
     sim_id: emailSim.id,
     is_full: true,
-    artifact_id: artifact?.id ?? null,
+    artifact_id: artifactId,
     rubric_json: { score: rubric.score, total: rubric.total, results: rubric.results },
   });
 
