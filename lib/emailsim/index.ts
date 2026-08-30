@@ -1,3 +1,4 @@
+import { z } from "zod";
 import type { EmailSim, EmailRule, EmailBucket, InboxEmail } from "@/content/schema";
 
 /**
@@ -129,4 +130,45 @@ export function gradeRulebook(sim: EmailSim, rules: EmailRule[]): Rubric {
 /** Resolve the starter (pre-suggested) rules into concrete EmailRule objects. */
 export function starterRules(sim: EmailSim): EmailRule[] {
   return sim.starterRules;
+}
+
+// --- Live-AI coach layer (spec §4.1) ----------------------------------------
+// One bounded call AFTER the deterministic sort returns a tailored coach note +
+// a 5-word "reason" for the top emails (making AI visibly "read" the mail). The
+// sort itself is unchanged and authoritative; this is decoration with a golden
+// fallback (the existing rubric strings). JSON is validated by callJsonAI.
+
+export const InboxTopReasonSchema = z.object({
+  emailId: z.string().min(1),
+  reason: z.string().min(1),
+});
+export const InboxCoachSchema = z.object({
+  coachNote: z.string().min(1),
+  topReasons: z.array(InboxTopReasonSchema).max(10).default([]),
+});
+export type InboxTopReason = z.infer<typeof InboxTopReasonSchema>;
+export type InboxCoach = z.infer<typeof InboxCoachSchema>;
+
+/** The top `limit` emails after sorting, highest-priority bucket first. */
+export function topEmails(sim: EmailSim, sorted: Sorted[], limit = 4): InboxEmail[] {
+  const priority = sim.buckets.map((b) => b.key);
+  const rank = (b: EmailBucket) => {
+    const i = priority.indexOf(b);
+    return i === -1 ? priority.length : i;
+  };
+  return [...sorted]
+    .sort((a, b) => rank(a.bucket) - rank(b.bucket))
+    .slice(0, limit)
+    .map((s) => s.email);
+}
+
+/** Scripted fallback: today's deterministic rubric improvement, no per-email reasons. */
+export function inboxCoachGolden(rubric: Rubric): InboxCoach {
+  return { coachNote: rubric.improvement, topReasons: [] };
+}
+
+/** Drop any reason whose emailId isn't a real inbox email (tamper/hallucination-safe). */
+export function sanitizeTopReasons(sim: EmailSim, reasons: InboxTopReason[]): InboxTopReason[] {
+  const ids = new Set(sim.inbox.map((e) => e.id));
+  return reasons.filter((r) => ids.has(r.emailId));
 }

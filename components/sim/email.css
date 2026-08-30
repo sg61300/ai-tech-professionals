@@ -9,6 +9,7 @@
 }
 
 .es-top {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -30,6 +31,15 @@
   transform: scale(0.94);
 }
 .es-top-title {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 14px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none; /* keeps the back button clickable underneath */
   font-family: var(--font-heading), sans-serif;
   font-weight: 700;
   font-size: 15px;
@@ -379,7 +389,13 @@
 .es-score b {
   font-family: var(--font-heading), sans-serif;
   font-size: 40px;
+  line-height: 1;
   color: var(--teal);
+}
+.es-score small {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted-foreground);
 }
 .es-checks {
   display: grid;
@@ -577,4 +593,13 @@
   .es-rune-hop img {
     animation: none;
   }
+}
+
+/* Live-AI per-email reason overlay (spec §4.1). */
+.es-card-airead {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.72rem;
+  color: #7c3aed;
+  font-style: italic;
 }

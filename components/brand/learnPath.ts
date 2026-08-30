@@ -166,6 +166,10 @@ export function buildLearnPath(spine: SpineNode[], states: Record<string, NodeSt
       node.vlab = {
         bold: s.title,
         small,
+        tone:
+          s.kind === "taste" || s.kind === "sim" || s.kind === "rapidfire"
+            ? s.kind
+            : undefined,
         left: onRight ? "64%" : "3%",
         top: topPct,
         width: onRight ? "33%" : "40%",

@@ -1,9 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { REEL_WATCH_MS } from "@/lib/reels";
-import { parseYouTubePlayerState, YT_STATE_PLAYING } from "@/lib/reels/player";
-import { shouldPreloadNext, type NetworkInfoLike } from "@/lib/reels/preload";
+import { loadYouTubeApi, type YTNamespace, type YTPlayer } from "@/lib/reels/ytapi";
 import { trackReelsOpened, trackReelsScreenTime } from "@/app/actions/telemetry";
 import "./reels.css";
 
@@ -42,6 +41,36 @@ export type ReelsFeedProps = {
   onWatch: WatchFn;
 };
 
+// Player options shared by every video the single player loads.
+const PLAYER_VARS = {
+  autoplay: 1,
+  mute: 1, // muted autoplay is the only kind browsers allow at load
+  controls: 0,
+  playsinline: 1,
+  rel: 0,
+  modestbranding: 1,
+  cc_load_policy: 0,
+  iv_load_policy: 3,
+  fs: 0,
+  disablekb: 1,
+} as const;
+
+/**
+ * Reels feed backed by ONE persistent YouTube player.
+ *
+ * Why a single player: the browser only lets a cross-origin YouTube player play
+ * WITH SOUND if that exact player was unmuted in response to a user gesture. A
+ * per-reel player (one iframe each) therefore stalls the moment we auto-unmute it
+ * on scroll — every new player lacks the gesture. So instead we keep ONE player,
+ * unmuted once by the user's tap, and swap the video via `loadVideoById` as they
+ * scroll — the same user-activated player keeps its sound across every reel.
+ *
+ * Layout: the scroller holds one poster per reel (the visual filmstrip + scroll
+ * targets); a single fixed <div className="reel-stage"> overlays the player above
+ * the posters; the active reel's chrome (title / rail / buttons) sits in a fixed
+ * layer above the player. The player element never moves in the DOM (reparenting
+ * an iframe reloads it and loses the audio permission).
+ */
 export function ReelsFeed({
   reels,
   initialLiked,
@@ -51,31 +80,10 @@ export function ReelsFeed({
   onWatch,
 }: ReelsFeedProps) {
   const [active, setActive] = useState(0);
-  // Index whose player has actually started PLAYING. Until the active reel's
-  // player fires PLAYING we show its poster thumbnail (over which the iframe
-  // then fades in) instead of a black frame — deriving `revealed` from this
-  // avoids a reset-on-active-change setState-in-effect.
+  // The index the player is actually PLAYING. While it differs from `active` the
+  // stage stays hidden and the active reel's poster + spinner show (during load).
   const [revealedIdx, setRevealedIdx] = useState<number | null>(null);
   const activeRef = useRef(0);
-  // Player windows that have already reported PLAYING (incl. a muted preloaded
-  // reel). Lets us reveal + unmute a preloaded reel the instant it becomes active,
-  // since it won't re-fire PLAYING.
-  const playedWindows = useRef<Set<MessageEventSource>>(new Set());
-
-  // Adaptive preload of the NEXT reel's player (one ahead), skipped on 2g / Data
-  // Saver. Gated behind an isClient snapshot so the preloaded iframe isn't in the
-  // server HTML (no hydration mismatch).
-  const isClient = useSyncExternalStore(
-    () => () => {},
-    () => true,
-    () => false,
-  );
-  const [connAllowsPreload] = useState(() =>
-    typeof navigator === "undefined"
-      ? true
-      : shouldPreloadNext((navigator as unknown as { connection?: NetworkInfoLike }).connection),
-  );
-  const preloadOn = isClient && connAllowsPreload;
 
   const [liked, setLiked] = useState<Set<number>>(new Set(initialLiked));
   const [saved, setSaved] = useState<Set<number>>(new Set(initialSaved));
@@ -83,17 +91,31 @@ export function ReelsFeed({
   const [reported, setReported] = useState<Set<number>>(new Set());
   const [reportFor, setReportFor] = useState<Reel | null>(null);
   const [muted, setMuted] = useState(true);
+  const [paused, setPaused] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const watched = useRef<Set<number>>(new Set(watchedIds));
   const mutedRef = useRef(true);
+  // The youtubeId currently loaded in the single player. We reload ONLY when this
+  // actually changes — so a revalidation (Save / Like / the 15s watch-XP fire all
+  // call revalidatePath("/reels"), handing us a fresh `reels` prop) never reloads
+  // the same reel. A non-gesture reload would get its unmuted audio blocked by the
+  // browser, which is why Save was silencing the reel.
+  const loadedVideoRef = useRef<string | null>(null);
+  // Latest reels, read inside the create effect so that effect can depend only on
+  // `apiReady` — the single player is created ONCE and never destroyed/recreated
+  // when a revalidation hands us a new `reels` array (which would drop the user's
+  // unmute and remute the fresh player).
+  const reelsRef = useRef(reels);
+  useEffect(() => {
+    reelsRef.current = reels;
+  });
 
   const scrollerRef = useRef<HTMLDivElement>(null);
   const sectionRefs = useRef<(HTMLElement | null)[]>([]);
-  const activeFrameRef = useRef<HTMLIFrameElement | null>(null);
-  // The window of the reel we're leaving, so we can mute it on scroll — on a
-  // BACKWARD scroll it becomes the preloaded (active+1) frame and would otherwise
-  // keep playing with its sound on.
-  const lastActiveWinRef = useRef<Window | null>(null);
+  const stageHostRef = useRef<HTMLDivElement | null>(null);
+  const ytRef = useRef<YTNamespace | null>(null);
+  const playerRef = useRef<YTPlayer | null>(null);
+  const [apiReady, setApiReady] = useState(false);
   const watchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -103,7 +125,24 @@ export function ReelsFeed({
     toastTimer.current = setTimeout(() => setToast(null), 2200);
   }, []);
 
-  // Track which reel is in view → single active player.
+  // Load the IFrame API once.
+  useEffect(() => {
+    let alive = true;
+    loadYouTubeApi()
+      .then((yt) => {
+        if (!alive) return;
+        ytRef.current = yt;
+        setApiReady(true);
+      })
+      .catch(() => {
+        /* offline / blocked — posters remain, nothing crashes */
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  // Track which reel is in view → drives the single player + chrome.
   useEffect(() => {
     const io = new IntersectionObserver(
       (entries) => {
@@ -120,68 +159,91 @@ export function ReelsFeed({
     return () => io.disconnect();
   }, [reels.length]);
 
-  // The active player streams state over postMessage (we subscribe via the
-  // "listening" handshake in killCaptions). Reveal the iframe the moment it
-  // actually starts PLAYING so the poster shows during the cold-start instead
-  // of a black frame.
-  // Apply the user's sound choice to a frame's player (unMute a PLAYING video is
-  // allowed; nothing re-mutes it now). Only ever called for the ACTIVE frame.
-  const applySoundTo = useCallback((win: MessageEventSource | null | undefined) => {
-    if (!win || mutedRef.current) return;
-    const post = (func: string, args: unknown[] = []) =>
-      (win as Window).postMessage(JSON.stringify({ event: "command", func, args }), "*");
-    post("unMute");
-    post("setVolume", [100]);
-  }, []);
-
+  // Create the single player once the API + host are ready, pointed at reel 0.
   useEffect(() => {
-    // Mute the reel we're leaving. Forward it's about to unmount (no-op); backward
-    // it becomes the preloaded frame and must go silent so we don't hear two reels.
-    const leaving = lastActiveWinRef.current;
-    if (leaving) {
-      try {
-        leaving.postMessage(JSON.stringify({ event: "command", func: "mute", args: [] }), "*");
-      } catch {
-        /* window already detached (forward unmount) — ignore */
-      }
-    }
+    const yt = ytRef.current;
+    const host = stageHostRef.current;
+    if (!apiReady || !yt || !host || playerRef.current) return;
+    // Use the current active reel (the user may have scrolled while the API loaded).
+    const current = reelsRef.current;
+    const first = current[activeRef.current] ?? current[0];
+    if (!first) return;
+    loadedVideoRef.current = first.youtubeId;
 
-    activeRef.current = active;
-    // A preloaded reel that already played won't re-fire PLAYING, so reveal +
-    // apply sound the instant it becomes active. (setState inside the timeout,
-    // not the effect body, to avoid a synchronous setState-in-effect.)
-    const quick = setTimeout(() => {
-      const win = activeFrameRef.current?.contentWindow;
-      if (win && playedWindows.current.has(win)) {
-        setRevealedIdx(activeRef.current);
-        applySoundTo(win);
-      }
-    }, 60);
-    // Safety net: a reel must never stay stuck on the spinner even if no PLAYING
-    // message ever arrives (rare). By 3s a warm/normal reel is playing.
-    const safety = setTimeout(() => setRevealedIdx(activeRef.current), 3000);
-    // Remember the now-active window so we can mute it when we later leave it.
-    lastActiveWinRef.current = activeFrameRef.current?.contentWindow ?? null;
+    const mount = document.createElement("div");
+    host.appendChild(mount);
+    playerRef.current = new yt.Player(mount, {
+      videoId: first.youtubeId,
+      playerVars: {
+        ...PLAYER_VARS,
+        origin: typeof window !== "undefined" ? window.location.origin : "",
+      },
+      events: {
+        onReady: (e) => {
+          e.target.getIframe()?.classList.add("reel-stage-media");
+        },
+        onStateChange: (e) => {
+          const S = yt.PlayerState;
+          if (e.data === S.PLAYING) {
+            setRevealedIdx(activeRef.current);
+            setPaused(false);
+          } else if (e.data === S.ENDED) {
+            // Reliable loop — loadVideoById drops the playlist loop, so replay here.
+            try {
+              e.target.seekTo(0, true);
+              e.target.playVideo();
+            } catch {
+              /* torn down */
+            }
+          }
+        },
+      },
+    });
+
     return () => {
-      clearTimeout(quick);
-      clearTimeout(safety);
+      try {
+        playerRef.current?.destroy();
+      } catch {
+        /* ignore */
+      }
+      playerRef.current = null;
     };
-  }, [active, applySoundTo]);
+  }, [apiReady]);
 
-  // Every player that reaches PLAYING is recorded (so a preloaded one can reveal
-  // instantly on activation). But we reveal + unmute ONLY the active frame — a
-  // muted preloaded player must never be unmuted, or you'd hear two reels.
+  // On active change, swap the video in the SAME player. The player keeps its
+  // muted/unmuted state across the swap, so once the user has unmuted (a gesture)
+  // sound follows every reel. The stage hides (revealedIdx still points at the old
+  // reel) until the new video reports PLAYING.
   useEffect(() => {
-    const onMsg = (e: MessageEvent) => {
-      if (parseYouTubePlayerState(e.data) !== YT_STATE_PLAYING) return;
-      if (e.source) playedWindows.current.add(e.source);
-      if (e.source !== activeFrameRef.current?.contentWindow) return;
-      setRevealedIdx(activeRef.current);
-      if (!mutedRef.current) applySoundTo(e.source);
+    activeRef.current = active;
+    const player = playerRef.current;
+    const reel = reels[active];
+    if (!player || !reel) return;
+    // Same reel already loaded (e.g. a revalidation re-ran this effect) → do NOT
+    // reload, or we'd interrupt playback and lose the unmuted-audio permission.
+    if (loadedVideoRef.current === reel.youtubeId) return;
+    loadedVideoRef.current = reel.youtubeId;
+    try {
+      player.loadVideoById(reel.youtubeId);
+    } catch {
+      /* not ready yet — the create effect points it at the active reel */
+    }
+    // Safety net: never let a reel sit on the spinner forever.
+    const safety = setTimeout(() => setRevealedIdx(activeRef.current), 3000);
+    return () => clearTimeout(safety);
+  }, [active, reels]);
+
+  // Tear the player down on unmount so no reel keeps playing after a route change.
+  useEffect(() => {
+    return () => {
+      try {
+        playerRef.current?.destroy();
+      } catch {
+        /* ignore */
+      }
+      playerRef.current = null;
     };
-    window.addEventListener("message", onMsg);
-    return () => window.removeEventListener("message", onMsg);
-  }, [applySoundTo]);
+  }, []);
 
   // "Watched" → capped XP after the dwell threshold on the active reel.
   useEffect(() => {
@@ -200,54 +262,8 @@ export function ReelsFeed({
     };
   }, [active, reels, onWatch, flash]);
 
-  // YouTube's caption track collides with our overlay and cc_load_policy alone
-  // doesn't stop forced captions. Talk to the embedded player over the IFrame
-  // API: announce we're "listening", then unload the caption modules. Repeated
-  // because the player only accepts commands once it's initialised.
-  const killCaptions = (e: React.SyntheticEvent<HTMLIFrameElement>) => {
-    const win = e.currentTarget.contentWindow;
-    if (!win) return;
-    const post = (msg: object) => win.postMessage(JSON.stringify(msg), "*");
-    const send = () => {
-      post({ event: "listening", id: 1, channel: "widget" });
-      for (const mod of ["captions", "cc"]) {
-        post({ event: "command", func: "unloadModule", args: [mod], id: 1, channel: "widget" });
-        post({ event: "command", func: "setOption", args: [mod, "track", {}], id: 1, channel: "widget" });
-      }
-      // Do NOT mute/unmute here. The reel loads muted via the URL (mute=1), which
-      // is what allows autoplay; sound is owned by the toggle + the post-play
-      // unmute. This batch repeats 6× over 4s to kill captions on a slow player —
-      // re-sending `mute` here was clobbering the user's unmute (sound played for
-      // a moment, then went silent until a manual pause/play after the loop ended).
-    };
-    send();
-    for (const t of [400, 900, 1600, 2600, 4000]) setTimeout(send, t);
-  };
-
-  const cmd = (func: string, args: unknown[] = []) => {
-    activeFrameRef.current?.contentWindow?.postMessage(
-      JSON.stringify({ event: "command", func, args }),
-      "*",
-    );
-  };
-
-  // Guarantee no reel audio survives a route change: on unmount, blank the
-  // active iframe's src (Next.js also removes the node, but this is belt-and-
-  // suspenders in case the browser keeps the frame alive momentarily).
-  useEffect(() => {
-    const frame = activeFrameRef;
-    return () => {
-      const win = frame.current?.contentWindow;
-      win?.postMessage(JSON.stringify({ event: "command", func: "pauseVideo", args: [] }), "*");
-      if (frame.current) frame.current.src = "about:blank";
-    };
-  }, []);
-
-  // Metric #11 (Architecture/12) — reels shallow-engagement. Fire `reels_opened`
-  // on mount (denominator) and the total VISIBLE seconds on this visit when the
-  // user navigates away (numerator input; < 60s total/week = shallow). Only
-  // counts time while the tab is actually visible, so a backgrounded tab doesn't
-  // inflate dwell.
+  // Metric #11 (Architecture/12) — reels shallow-engagement. `reels_opened` on
+  // mount (denominator) + total VISIBLE seconds when the user leaves (numerator).
   useEffect(() => {
     void trackReelsOpened();
     let acc = 0;
@@ -271,21 +287,49 @@ export function ReelsFeed({
     };
   }, []);
 
-  const pauseActive = () => cmd("pauseVideo");
-
-  // Reels autoplay muted (browser policy); this is the in-app sound toggle that
-  // replaces YouTube's own control (hidden by controls=0). The choice persists
-  // across reels via mutedRef, re-applied when each new reel loads.
+  // The in-app sound toggle. Runs inside the user's click (a gesture), so the
+  // browser lets us actually unmute — and because it's the one persistent player,
+  // the choice then holds for every reel we load.
   const toggleSound = () => {
     const next = !muted;
     setMuted(next);
     mutedRef.current = next;
-    cmd(next ? "mute" : "unMute");
-    if (!next) cmd("setVolume", [100]);
+    const player = playerRef.current;
+    if (!player) return;
+    try {
+      if (next) player.mute();
+      else {
+        player.unMute();
+        player.setVolume(100);
+        player.playVideo();
+      }
+    } catch {
+      /* ignore */
+    }
   };
 
-  // Open the full Short on YouTube in a new tab; keep the app on the reel screen
-  // and just pause the in-app player so nothing plays twice.
+  // Tap the video to toggle play / pause (clicks pass through the transparent
+  // stage + chrome to the scroller, which owns this handler). It's a user gesture,
+  // so resuming is always allowed.
+  const togglePlayPause = () => {
+    const player = playerRef.current;
+    const yt = ytRef.current;
+    if (!player || !yt) return;
+    try {
+      if (player.getPlayerState() === yt.PlayerState.PLAYING) {
+        player.pauseVideo();
+        setPaused(true);
+      } else {
+        player.playVideo();
+        setPaused(false);
+      }
+    } catch {
+      /* ignore */
+    }
+  };
+
+  // Open the full Short on YouTube in a new tab; pause the in-app player so
+  // nothing plays twice.
   const openInYouTube = () => {
     const reel = reels[active];
     if (!reel) return;
@@ -294,7 +338,12 @@ export function ReelsFeed({
       "_blank",
       "noopener,noreferrer",
     );
-    pauseActive();
+    try {
+      playerRef.current?.pauseVideo();
+      setPaused(true);
+    } catch {
+      /* ignore */
+    }
     flash("Opened on YouTube · paused here");
   };
 
@@ -324,7 +373,6 @@ export function ReelsFeed({
         /* user dismissed the share sheet — no-op */
       }
     } else {
-      // Report opens a reason sheet first (no blocking window.prompt).
       if (reported.has(reel.id)) {
         flash("Already reported");
         return;
@@ -357,8 +405,50 @@ export function ReelsFeed({
     );
   }
 
+  const activeReel = reels[active];
+  const revealed = revealedIdx === active;
+
   return (
     <div className="reels-shell">
+      {/* Poster filmstrip — one per reel; the scroll targets + what shows while a
+          reel loads (the single player stage sits above these). A tap here (which
+          passes through the transparent stage + chrome) toggles play / pause. */}
+      <div className="reels" ref={scrollerRef} onClick={togglePlayPause}>
+        {reels.map((reel, i) => (
+          <section
+            className="reel-slide"
+            key={reel.id}
+            data-idx={i}
+            ref={(el) => {
+              sectionRefs.current[i] = el;
+            }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              className="reel-poster"
+              src={`https://i.ytimg.com/vi/${reel.youtubeId}/hqdefault.jpg`}
+              alt={reel.title}
+              loading="lazy"
+            />
+          </section>
+        ))}
+      </div>
+
+      {/* The ONE player. Fixed over the active poster; fades in when its video is
+          actually PLAYING so loads read as the poster, not a black frame. */}
+      <div className={`reel-stage${revealed ? " reveal" : ""}`}>
+        <div className="reel-stage-host" ref={stageHostRef} />
+      </div>
+      {!revealed && <div className="reel-spinner" aria-hidden />}
+      {paused && revealed && (
+        <div className="reel-paused" aria-hidden>
+          <svg viewBox="0 0 24 24" width="34" height="34" fill="currentColor">
+            <path d="M8 5v14l11-7z" />
+          </svg>
+        </div>
+      )}
+
+      {/* Chrome for the active reel — above the player. */}
       <button
         type="button"
         className="reel-sound"
@@ -378,102 +468,59 @@ export function ReelsFeed({
       >
         ⛶
       </button>
-      <div className="reels" ref={scrollerRef}>
-      {reels.map((reel, i) => {
-        const isActive = i === active;
-        return (
-          <section
-            className="reel-slide"
-            key={reel.id}
-            data-idx={i}
-            ref={(el) => {
-              sectionRefs.current[i] = el;
-            }}
-          >
-            <div className="reel-media">
-              {/* Poster always sits behind; the active iframe fades in over it
-                  once the player is actually PLAYING (no black cold-start frame). */}
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                className="reel-poster"
-                src={`https://i.ytimg.com/vi/${reel.youtubeId}/hqdefault.jpg`}
-                alt={reel.title}
-                loading="lazy"
-              />
-              {/* Render the active reel AND (on a capable connection) the next one
-                  to warm its player. Both use the same autoplay=1&mute=1 src so
-                  becoming active never reloads the iframe. The preloaded one plays
-                  MUTED, off-screen, behind its poster — nothing unmutes it (only the
-                  active frame is unmuted), so there's no second audio track. */}
-              {(isActive || (preloadOn && i === active + 1)) && (
-                <iframe
-                  ref={isActive ? activeFrameRef : null}
-                  className={`reel-frame${isActive && revealedIdx === active ? " reveal" : ""}`}
-                  src={`https://www.youtube.com/embed/${reel.youtubeId}?autoplay=1&mute=1&playsinline=1&rel=0&modestbranding=1&loop=1&playlist=${reel.youtubeId}&controls=0&cc_load_policy=0&iv_load_policy=3&fs=0&disablekb=1&enablejsapi=1`}
-                  title={reel.title}
-                  allow="autoplay; encrypted-media; picture-in-picture"
-                  onLoad={killCaptions}
-                />
-              )}
-              {/* Loading spinner over the poster until the active reel plays, so a
-                  slow connection reads as "loading", not "stuck". */}
-              {isActive && revealedIdx !== active && <div className="reel-spinner" aria-hidden />}
-            </div>
 
-            <div className="reel-shade" />
+      {activeReel && (
+        <div className="reel-chrome">
+          <div className="reel-shade" />
+          <div className="reel-meta">
+            {activeReel.topic && <span className="reel-tag">#{activeReel.topic}</span>}
+            <h3 className="reel-title">{activeReel.title}</h3>
+            {activeReel.channel && <span className="reel-chan">{activeReel.channel}</span>}
+          </div>
 
-            <div className="reel-meta">
-              {reel.topic && <span className="reel-tag">#{reel.topic}</span>}
-              <h3 className="reel-title">{reel.title}</h3>
-              {reel.channel && <span className="reel-chan">{reel.channel}</span>}
-            </div>
-
-            <div className="reel-rail">
-              <button
-                type="button"
-                className={`rr-btn ${liked.has(reel.id) ? "on" : ""}`}
-                onClick={() => toggle(reel, "like")}
-                aria-pressed={liked.has(reel.id)}
-                aria-label="Like"
-              >
-                <span>{liked.has(reel.id) ? "❤️" : "🤍"}</span>
-                <i>Like</i>
-              </button>
-              <button
-                type="button"
-                className={`rr-btn ${saved.has(reel.id) ? "on" : ""}`}
-                onClick={() => toggle(reel, "save")}
-                aria-pressed={saved.has(reel.id)}
-                aria-label="Save"
-              >
-                <span><BookmarkIcon filled={saved.has(reel.id)} /></span>
-                <i>Save</i>
-              </button>
-              <button
-                type="button"
-                className={`rr-btn ${shared.has(reel.id) ? "on" : ""}`}
-                onClick={() => toggle(reel, "share")}
-                aria-label="Share"
-              >
-                <span>↗️</span>
-                <i>Share</i>
-              </button>
-              <button
-                type="button"
-                className={`rr-btn ${reported.has(reel.id) ? "on" : ""}`}
-                onClick={() => toggle(reel, "report")}
-                aria-haspopup="menu"
-                aria-label="Report"
-              >
-                <span>⚑</span>
-                <i>Report</i>
-              </button>
-            </div>
-
-          </section>
-        );
-      })}
-      </div>
+          <div className="reel-rail">
+            <button
+              type="button"
+              className={`rr-btn ${liked.has(activeReel.id) ? "on" : ""}`}
+              onClick={() => toggle(activeReel, "like")}
+              aria-pressed={liked.has(activeReel.id)}
+              aria-label="Like"
+            >
+              <span>{liked.has(activeReel.id) ? "❤️" : "🤍"}</span>
+              <i>Like</i>
+            </button>
+            <button
+              type="button"
+              className={`rr-btn ${saved.has(activeReel.id) ? "on" : ""}`}
+              onClick={() => toggle(activeReel, "save")}
+              aria-pressed={saved.has(activeReel.id)}
+              aria-label="Save"
+            >
+              <span><BookmarkIcon filled={saved.has(activeReel.id)} /></span>
+              <i>Save</i>
+            </button>
+            <button
+              type="button"
+              className={`rr-btn ${shared.has(activeReel.id) ? "on" : ""}`}
+              onClick={() => toggle(activeReel, "share")}
+              aria-label="Share"
+            >
+              <span>↗️</span>
+              <i>Share</i>
+            </button>
+            <button
+              type="button"
+              className={`rr-btn ${reported.has(activeReel.id) ? "on" : ""}`}
+              onClick={() => toggle(activeReel, "report")}
+              aria-haspopup="menu"
+              aria-label="Report"
+            >
+              <span>⚑</span>
+              <i>Report</i>
+            </button>
+          </div>
+        </div>
+      )}
 
       {reportFor && (
         <div

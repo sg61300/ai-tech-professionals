@@ -30,7 +30,7 @@ function XpDialog({ level, xp, onClose }: { level: number; xp: number; onClose: 
           XP is your momentum. You&apos;re at <b>{xp.toLocaleString()} XP</b>, tier <b>{level}</b>.
         </p>
         <p className="xpi-tier">
-          A <b>tier</b> is simply your XP rank — like belts in a game, it climbs as you learn.
+          A <b>tier</b> is simply your XP rank, like belts in a game. It climbs as you learn.
           {toNextTier > 0 && (
             <>
               {" "}Just <b>{toNextTier.toLocaleString()} XP</b> more to reach tier <b>{level + 1}</b>.

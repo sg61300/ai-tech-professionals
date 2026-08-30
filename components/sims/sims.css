@@ -1,0 +1,365 @@
+/* Simulations-by-Level screen (Design/xp-sim-unlock-spec.md §8). Lives in the
+   .lh app frame; reuses the global Teal & Coral tokens + the app's card
+   vocabulary (gradient washes, glossy gradient tiles, --shadow-card) so it reads
+   like the rest of the product in both light + dark and the 460px column. */
+
+/* Sticky header: title on the left, live XP pill on the right. */
+.sims-top {
+  gap: 12px;
+  align-items: center;
+}
+.sims-headtext {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.sims-title {
+  margin: 0;
+  font-family: var(--font-heading, var(--font-poppins)), sans-serif;
+  font-weight: 800;
+  font-size: 21px;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--foreground); /* fallback if background-clip:text is unsupported */
+  /* AI signature: teal→violet gradient fill, tying the title to the XP pill and
+     the icon tiles. */
+  background: linear-gradient(100deg, var(--teal-deep, var(--teal)), var(--violet));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.sims-sub {
+  font-size: 11.5px;
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--muted-foreground);
+}
+.sims-xp {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--teal-deep, var(--teal));
+  background: linear-gradient(135deg, var(--teal-tint), color-mix(in srgb, var(--violet) 16%, var(--teal-tint)));
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 1px 4px rgba(13, 40, 36, 0.08);
+}
+
+.sims-main {
+  padding-top: 12px;
+}
+.sims-lvl {
+  margin-top: 18px;
+}
+.sims-lvl:first-of-type {
+  margin-top: 8px;
+}
+.sims-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  margin-top: 9px;
+}
+
+/* ---- Sim card ---- */
+.sc {
+  position: relative;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl, 18px);
+  padding: 15px 16px 16px;
+  /* Layered = 3D: a top inner highlight (raised edge) over stacked drop shadows
+     (near contact + soft far), so the card reads as lifted off the surface. */
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 1px 2px rgba(13, 40, 36, 0.1),
+    0 8px 20px rgba(13, 40, 36, 0.12);
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.18s ease;
+}
+@media (hover: hover) {
+  .sc:hover {
+    transform: translateY(-3px);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5), 0 3px 6px rgba(13, 40, 36, 0.1),
+      0 18px 34px rgba(13, 40, 36, 0.17);
+  }
+}
+/* Press highlight — pushes in and rings in teal on click / tap (fires for the
+   card and for the buttons inside it). */
+.sc:active {
+  transform: translateY(0) scale(0.992);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 0 0 3px color-mix(in srgb, var(--teal) 34%, transparent), 0 2px 8px rgba(13, 40, 36, 0.14);
+}
+@media (prefers-reduced-motion: reduce) {
+  .sc {
+    transition: none;
+  }
+  .sc:hover,
+  .sc:active {
+    transform: none;
+  }
+}
+/* State washes — mirror the app's .resume-card treatment. Locked is the "spend
+   XP to jump ahead" hero, so it gets the coral→violet invitation gradient. */
+.sc-open {
+  border-color: color-mix(in srgb, var(--teal) 38%, var(--border));
+  background: linear-gradient(150deg, color-mix(in srgb, var(--teal) 11%, var(--card)), var(--card));
+}
+.sc-completed {
+  border-color: color-mix(in srgb, var(--success, var(--teal)) 34%, var(--border));
+  background: linear-gradient(150deg, color-mix(in srgb, var(--success, var(--teal)) 10%, var(--card)), var(--card));
+}
+.sc-locked {
+  border-color: color-mix(in srgb, var(--coral) 40%, var(--border));
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--coral) 13%, var(--card)),
+    color-mix(in srgb, var(--violet) 11%, var(--card))
+  );
+}
+
+.sc-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+}
+
+/* Glossy gradient tile (like the path nodes) so the glyph reads as an emblem. */
+.sc-glyph {
+  position: relative;
+  flex: none;
+  width: 46px;
+  height: 46px;
+  border-radius: 13px;
+  display: grid;
+  place-items: center;
+  font-size: 23px;
+  box-shadow: 0 4px 10px rgba(13, 40, 36, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.34);
+  background: linear-gradient(150deg, var(--violet), var(--teal));
+}
+.sc-open .sc-glyph {
+  background: linear-gradient(150deg, #4fc9be, #1a8a83);
+}
+.sc-completed .sc-glyph {
+  background: linear-gradient(150deg, #5fcf95, #2f9e6d);
+}
+.sc-locked .sc-glyph {
+  background: linear-gradient(150deg, var(--violet), var(--coral));
+  filter: saturate(0.92);
+}
+.sc-glyph-lock {
+  position: absolute;
+  right: -5px;
+  bottom: -5px;
+  width: 19px;
+  height: 19px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 10px;
+  background: var(--card);
+  box-shadow: 0 1px 4px rgba(13, 40, 36, 0.25);
+}
+
+.sc-main {
+  min-width: 0;
+  flex: 1;
+}
+.sc-titlerow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sc-title {
+  margin: 0;
+  min-width: 0;
+  flex: 1;
+  font-family: var(--font-heading, var(--font-poppins)), sans-serif;
+  font-weight: 700;
+  font-size: 15.5px;
+  line-height: 1.2;
+  color: var(--foreground);
+}
+.sc-chip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  padding: 3px 9px;
+  border-radius: 999px;
+}
+.sc-chip-done {
+  color: var(--success, var(--teal-deep));
+  background: color-mix(in srgb, var(--success, var(--teal)) 15%, transparent);
+}
+.sc-chip-open {
+  color: var(--teal-deep, var(--teal));
+  background: color-mix(in srgb, var(--teal) 14%, transparent);
+}
+.sc-chip-locked {
+  color: var(--violet);
+  background: color-mix(in srgb, var(--violet) 15%, transparent);
+}
+
+.sc-blurb {
+  margin: 6px 0 0;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--muted-foreground);
+}
+
+.sc-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+.sc-actions-confirm {
+  gap: 8px;
+}
+
+/* Buttons + link share the pill shape. */
+.sc-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 0;
+  cursor: pointer;
+  border-radius: 12px;
+  font-family: var(--font-poppins), sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 9px 17px;
+  text-decoration: none;
+  text-align: center;
+  transition: filter 0.15s, transform 0.12s, box-shadow 0.15s, border-color 0.15s;
+}
+.sc-btn-primary {
+  color: #fff;
+  background: linear-gradient(150deg, var(--teal), var(--teal-deep, #0f766e));
+  box-shadow: 0 6px 15px color-mix(in srgb, var(--teal) 30%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+.sc-btn-primary:hover {
+  filter: brightness(1.06);
+}
+.sc-btn-primary:hover .sc-arrow {
+  transform: translateX(3px);
+}
+.sc-btn-primary:active {
+  transform: translateY(1px);
+}
+.sc-btn-primary:disabled {
+  opacity: 0.72;
+  cursor: default;
+  filter: none;
+  transform: none;
+}
+.sc-arrow {
+  transition: transform 0.15s ease;
+}
+.sc-price {
+  font-size: 12px;
+  font-weight: 800;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.2);
+  font-variant-numeric: tabular-nums;
+}
+.sc-btn-ghost {
+  background: transparent;
+  color: var(--foreground);
+  border: 1.5px solid var(--border);
+}
+.sc-btn-ghost:hover {
+  border-color: var(--muted-foreground);
+}
+.sc-btn-ghost:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+/* Not-affordable: a quiet status label, not a dead button. */
+.sc-need {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--muted-foreground);
+  background: color-mix(in srgb, var(--muted-foreground) 11%, transparent);
+  padding: 8px 15px;
+  border-radius: 12px;
+}
+
+/* Inline confirm block (no native dialog). Coral edge = "spend / permanent". */
+.sc-confirm {
+  margin-top: 14px;
+  padding: 12px 13px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--coral) 38%, var(--border));
+  background: color-mix(in srgb, var(--coral) 9%, var(--card));
+}
+.sc-confirm-q {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--foreground);
+}
+.sc-confirm-q b {
+  color: var(--coral-deep, var(--coral));
+  font-weight: 700;
+}
+.sc-confirm .sc-actions {
+  margin-top: 11px;
+}
+
+.sc-err {
+  margin: 10px 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--error);
+  text-align: right;
+}
+
+/* ---- Locked "coming soon" outline (Level 2 / 3) ---- */
+.sims-soon {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  margin-top: 9px;
+  padding: 15px 16px;
+  border-radius: var(--radius-xl, 18px);
+  border: 1px dashed color-mix(in srgb, var(--border) 80%, var(--muted-foreground));
+  background: color-mix(in srgb, var(--muted) 26%, transparent);
+}
+.sims-soon-ic {
+  flex: none;
+  width: 46px;
+  height: 46px;
+  border-radius: 13px;
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+  background: color-mix(in srgb, var(--muted-foreground) 12%, var(--muted));
+  color: var(--muted-foreground);
+}
+.sims-soon-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.sims-soon-title {
+  font-family: var(--font-poppins), sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--foreground);
+}
+.sims-soon-sub {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--muted-foreground);
+}

@@ -7,7 +7,13 @@ import type { AIProvider, AIRequest, AIResult } from "./provider";
  * client). Throws on error/quota — the `callAI` wrapper turns any throw or the
  * 8s timeout into the scripted fallback so the funnel never dead-ends.
  */
-const MODEL = "gemini-2.0-flash";
+// Auto-updating alias (overridable via env) so a model deprecation is a config
+// change, not a silent fallback. Google retired the pinned `gemini-2.0-flash`,
+// which made `callAI` swallow a 404 and serve the scripted fallback every time
+// — the live generation looked "identical every run" instead of erroring.
+// `-lite` is non-thinking (full output within the token budget) and lightest on
+// free-tier quota, which suits this short-email task.
+const MODEL = process.env.GEMINI_MODEL ?? "gemini-flash-lite-latest";
 
 export class GeminiProvider implements AIProvider {
   private client: GoogleGenerativeAI;

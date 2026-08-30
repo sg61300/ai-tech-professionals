@@ -29,6 +29,9 @@ export type PathNode = {
     text?: string;
     bold?: string;
     small?: string;
+    /** Content type of the milestone (taste / sim / rapidfire), used to tint the
+     *  label so the path reads as a rhythm of node types, not one flat colour. */
+    tone?: "taste" | "sim" | "rapidfire";
     left: string;
     top: string;
     width: string;
@@ -165,7 +168,7 @@ export function LessonPath({ data, greyed = false }: { data: PathData; greyed?: 
             )}
             {n.vlab && (
               <span
-                className={`vlab ${n.vlab.align}`}
+                className={`vlab ${n.vlab.align}${n.vlab.tone ? ` t-${n.vlab.tone}` : ""}`}
                 style={{
                   left: n.vlab.left,
                   top: n.vlab.top,

@@ -4,6 +4,7 @@ import { L1_UNIT3 } from "@/content/lessons/l1-unit3";
 import { TASTE_SIM } from "@/content/sims/taste";
 import { EMAIL_SIM } from "@/content/sims/email";
 import { SYSTEM_SIM } from "@/content/sims/system";
+import { BIAS_SIM } from "@/content/sims/bias";
 import { RF1 } from "@/content/rapidfire/rf1";
 import { RF2 } from "@/content/rapidfire/rf2";
 import {
@@ -11,11 +12,13 @@ import {
   TasteSimSchema,
   EmailSimSchema,
   SystemSimSchema,
+  BiasSimSchema,
   RapidFireSetSchema,
   type Lesson,
   type TasteSim,
   type EmailSim,
   type SystemSim,
+  type BiasSim,
   type RapidFireSet,
 } from "@/content/schema";
 
@@ -113,6 +116,15 @@ export const L1_SPINE: SpineNode[] = [
   // --- Unit 3: Think Like a Decision-Maker (capstone) ---
   { id: "l11", kind: "lesson", title: "Your second brain", glyph: "🧠", unlockAfter: ["l10"], playable: true },
   { id: "l12", kind: "lesson", title: "Decision-maker capstone", glyph: "🎯", unlockAfter: ["l11"], playable: true },
+  {
+    id: "sim-bias",
+    kind: "sim",
+    title: "Sim: Bias Catcher",
+    glyph: "⚖️",
+    // The L1 capstone sim (spec §4.3): everything through System X-Ray must be done.
+    unlockAfter: ["l6", "l7", "l8", "l9", "l10", "rf2", "sim-system"],
+    playable: true,
+  },
   // Level 1 complete -> Level 2 revealed as a locked outline.
   { id: "l2-locked", kind: "lock", title: "Level 2", glyph: "🔒", unlockAfter: [], playable: false },
 ];
@@ -136,6 +148,12 @@ export { SYSTEM_SIM };
 export const systemSim: SystemSim = SystemSimSchema.parse(SYSTEM_SIM);
 export const getSystemSim = (id: string): SystemSim | undefined =>
   id === systemSim.id ? systemSim : undefined;
+
+/** The Bias Catcher sim (L1 capstone), validated at import. */
+export { BIAS_SIM };
+export const biasSim: BiasSim = BiasSimSchema.parse(BIAS_SIM);
+export const getBiasSim = (id: string): BiasSim | undefined =>
+  id === biasSim.id ? biasSim : undefined;
 
 /** XP awarded for PASSING a rapid-fire round (fixed; the in-round tally is cosmetic). */
 export const RAPIDFIRE_XP = 50;

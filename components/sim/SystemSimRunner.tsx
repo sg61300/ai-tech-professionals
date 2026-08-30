@@ -1,19 +1,26 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { SystemSim, SysNode } from "@/content/schema";
+import { simBackHref } from "@/lib/sim/backHref";
+import type { SystemSim, SysNode, SysSample } from "@/content/schema";
 import {
   getSample,
   incomingLabel,
   checkComprehension,
   buildRequirementsText,
+  buildSystemGrill,
 } from "@/lib/systemsim";
+import { guardInput, MAX_LEN } from "@/lib/inputguard";
 import {
   completeSystemSim,
+  generateXray,
   type SystemCompleteResult,
+  type XrayGenResult,
 } from "@/app/(app)/learn/sim/[id]/system-actions";
+import { RuneLoader } from "@/components/brand/RuneLoader";
 import { RuneMascot } from "@/components/brand/RuneMascot";
+import { SampleTag } from "./SampleTag";
 import "./system.css";
 
 /**
@@ -35,12 +42,103 @@ const KIND_GLYPH: Record<string, string> = {
   end: "⏹",
 };
 
+// Hoisted to module scope so a re-render (e.g. tapping a node) does NOT remount
+// the whole map — which would reset the tap feedback, the selected-node highlight,
+// and replay every node's entry animation (the flicker FIX 2/3 are meant to avoid).
+function Header({ onBack, label }: { onBack: () => void; label: string }) {
+  return (
+    <header className="sx-top">
+      <button className="sx-icon" onClick={onBack} aria-label="Back">
+        ←
+      </button>
+      <span className="sx-top-title">{label}</span>
+      <span className="sx-icon sx-ghost" aria-hidden />
+    </header>
+  );
+}
+
+function NodeCard({
+  node,
+  cardRef,
+  onClose,
+}: {
+  node: SysNode | null;
+  cardRef: React.RefObject<HTMLDivElement | null>;
+  onClose: () => void;
+}) {
+  if (!node) return null;
+  return (
+    // key + ref (FIX 2): remounts per tap so the slide/fade replays, and lets us
+    // scroll the panel into view (it renders below a long, scrollable node list).
+    <div key={node.id} ref={cardRef} className="sx-nodecard" role="dialog" aria-label="Step detail">
+      <div className="sx-nodecard-h">
+        {node.hr && <span className="sx-hrbadge">👋 HR owns this</span>}
+        <b>{node.label}</b>
+      </div>
+      <p>{node.hint}</p>
+      {node.decisionBeat && <p className="sx-beat">🔥 {node.decisionBeat}</p>}
+      <button className="sx-link" onClick={onClose}>
+        Close
+      </button>
+    </div>
+  );
+}
+
+function Flow({
+  sample,
+  onNodeTap,
+  highlightHr,
+  selectedId,
+  feedback,
+}: {
+  sample: SysSample;
+  onNodeTap: (n: SysNode) => void;
+  highlightHr: boolean;
+  /** FIX 2: the tapped node on the map gets a distinct selected state. */
+  selectedId?: string | null;
+  /** FIX 3: the comprehension answer turns correct (green + ✓) or incorrect (red). */
+  feedback?: { id: string; ok: boolean } | null;
+}) {
+  return (
+    <div className="sx-flow">
+      {sample.nodes.map((n, i) => {
+        const branch = incomingLabel(sample, n.id);
+        const isSelected = selectedId === n.id;
+        const fb = feedback && feedback.id === n.id ? (feedback.ok ? " correct" : " incorrect") : "";
+        return (
+          <div key={n.id} className="sx-flow-row">
+            {i > 0 && (
+              <span className="sx-arrow">
+                {branch ? <span className="sx-branch">{branch}</span> : null}↓
+              </span>
+            )}
+            <button
+              className={`sx-node ${n.kind}${highlightHr && n.hr ? " glow" : ""}${isSelected ? " sel" : ""}${fb}`}
+              aria-pressed={isSelected || (feedback?.id === n.id ? true : undefined)}
+              style={{ animationDelay: `${i * 90}ms` }}
+              onClick={() => onNodeTap(n)}
+            >
+              <span className="sx-node-glyph" aria-hidden>
+                {feedback && feedback.id === n.id && feedback.ok ? "✓" : KIND_GLYPH[n.kind]}
+              </span>
+              <span className="sx-node-label">{n.label}</span>
+              {highlightHr && n.hr && <span className="sx-node-tag">HR</span>}
+            </button>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export function SystemSimRunner({
   sim,
   completeAction = completeSystemSim,
+  generateAction = generateXray,
 }: {
   sim: SystemSim;
   completeAction?: (input: unknown) => Promise<SystemCompleteResult>;
+  generateAction?: (input: unknown) => Promise<XrayGenResult>;
 }) {
   const router = useRouter();
 
@@ -53,19 +151,87 @@ export function SystemSimRunner({
   const [saving, setSaving] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const sample = useMemo(() => getSample(sim, sampleId)!, [sim, sampleId]);
+  // Scroll targets (FIX 2/3): the tapped-node hint panel and the comprehension result.
+  const nodeCardRef = useRef<HTMLDivElement | null>(null);
+  const checkResRef = useRef<HTMLDivElement | null>(null);
+
+  // Describe-your-own (spec §4.2b): guarded free-text seam → one AI graph call.
+  const [describeMode, setDescribeMode] = useState(false);
+  const [workflowText, setWorkflowText] = useState("");
+  const [attested, setAttested] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [generated, setGenerated] = useState<SysSample | null>(null);
+  const [genSource, setGenSource] = useState<"live" | "fallback" | null>(null);
+
+  // Client-side guard (UX only; the server re-validates and is authoritative).
+  const guard = describeMode ? guardInput(workflowText) : null;
+  const guardError = describeMode && workflowText.trim().length > 0 && guard && !guard.ok ? guard.reason : null;
+  const canGenerate = describeMode
+    ? !!guard?.ok && attested && !generating
+    : true;
+
+  // The active graph: a generated one wins over the selected preset.
+  const sample = useMemo(
+    () => generated ?? getSample(sim, sampleId)!,
+    [generated, sim, sampleId],
+  );
   const reqText = useMemo(() => buildRequirementsText(sample), [sample]);
 
   const checkSolved = checkPick !== null && checkComprehension(sample, checkPick);
-  const grillCorrect = Math.max(0, sim.grillBeat.branches.findIndex((b) => b.correct));
+  // FIX 4: grill derived from THIS system's own edge cases (not the static onboarding one).
+  const grill = useMemo(() => buildSystemGrill(sample), [sample]);
+  const grillCorrect = Math.max(0, grill.branches.findIndex((b) => b.correct));
   const grillSolved = grillPicked === grillCorrect;
+
+  // FIX 2: when a node is tapped on the map, bring its hint panel into view.
+  useEffect(() => {
+    if (phase === "map" && tapped && nodeCardRef.current) {
+      const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+      nodeCardRef.current.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "nearest" });
+    }
+  }, [tapped, phase]);
+
+  // FIX 3: when the comprehension answer is tapped, bring the feedback into view.
+  useEffect(() => {
+    if (phase === "check" && checkPick !== null && checkResRef.current) {
+      const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+      checkResRef.current.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "nearest" });
+    }
+  }, [checkPick, phase]);
 
   async function finish() {
     setSaving(true);
-    const r = await completeAction({ sampleId });
+    const r = await completeAction(generated ? { generated } : { sampleId });
     setResult(r);
     setSaving(false);
     setPhase("done");
+  }
+
+  /** Deterministic path (preset) renders instantly; the AI path shows an inline loader. */
+  async function proceedToMap() {
+    if (!describeMode) {
+      setGenerated(null);
+      setGenSource(null);
+      setPhase("map");
+      return;
+    }
+    if (!guard?.ok) return; // guarded: never fire on invalid input
+    setGenerating(true);
+    setPhase("map");
+    const r = await generateAction({ workflowType: guard.normalized });
+    setGenerated(r.sample);
+    setGenSource(r.source);
+    setGenerating(false);
+  }
+
+  /** Retry the generation (SampleTag) without leaving the map. */
+  async function retryGenerate() {
+    if (!guard?.ok) return;
+    setGenerating(true);
+    const r = await generateAction({ workflowType: guard.normalized });
+    setGenerated(r.sample);
+    setGenSource(r.source);
+    setGenerating(false);
   }
   function copyReq() {
     try {
@@ -78,16 +244,6 @@ export function SystemSimRunner({
   }
   const copyLabel = copied ? "✓ Copied!" : "📋 Copy requirements";
 
-  const Header = ({ onBack, label }: { onBack: () => void; label: string }) => (
-    <header className="sx-top">
-      <button className="sx-icon" onClick={onBack} aria-label="Back">
-        ←
-      </button>
-      <span className="sx-top-title">{label}</span>
-      <span className="sx-icon sx-ghost" aria-hidden />
-    </header>
-  );
-
   // Home gets its own space at the bottom, below the primary action.
   const homeLink = (
     <button className="sx-home" onClick={() => router.push("/learn")}>
@@ -95,54 +251,11 @@ export function SystemSimRunner({
     </button>
   );
 
-  const NodeCard = () =>
-    tapped ? (
-      <div className="sx-nodecard" role="dialog" aria-label="Step detail">
-        <div className="sx-nodecard-h">
-          {tapped.hr && <span className="sx-hrbadge">👋 HR owns this</span>}
-          <b>{tapped.label}</b>
-        </div>
-        <p>{tapped.hint}</p>
-        {tapped.decisionBeat && <p className="sx-beat">🔥 {tapped.decisionBeat}</p>}
-        <button className="sx-link" onClick={() => setTapped(null)}>
-          Close
-        </button>
-      </div>
-    ) : null;
-
-  const Flow = ({ onNodeTap, highlightHr }: { onNodeTap: (n: SysNode) => void; highlightHr: boolean }) => (
-    <div className="sx-flow">
-      {sample.nodes.map((n, i) => {
-        const branch = incomingLabel(sample, n.id);
-        return (
-          <div key={n.id} className="sx-flow-row">
-            {i > 0 && (
-              <span className="sx-arrow">
-                {branch ? <span className="sx-branch">{branch}</span> : null}↓
-              </span>
-            )}
-            <button
-              className={`sx-node ${n.kind}${highlightHr && n.hr ? " glow" : ""}`}
-              style={{ animationDelay: `${i * 90}ms` }}
-              onClick={() => onNodeTap(n)}
-            >
-              <span className="sx-node-glyph" aria-hidden>
-                {KIND_GLYPH[n.kind]}
-              </span>
-              <span className="sx-node-label">{n.label}</span>
-              {highlightHr && n.hr && <span className="sx-node-tag">HR</span>}
-            </button>
-          </div>
-        );
-      })}
-    </div>
-  );
-
   // ==========================================================================
   if (phase === "intro") {
     return (
       <div className="sx">
-        <Header onBack={() => router.push("/learn")} label="System X-Ray" />
+        <Header onBack={() => router.push(simBackHref())} label="System X-Ray" />
         <main className="sx-center">
           <div className="sx-hero" aria-hidden>
             🩻
@@ -170,22 +283,62 @@ export function SystemSimRunner({
             {sim.samples.map((s) => (
               <button
                 key={s.id}
-                className={`sx-sample${s.id === sampleId ? " on" : ""}`}
-                onClick={() => setSampleId(s.id)}
+                className={`sx-sample${!describeMode && s.id === sampleId ? " on" : ""}`}
+                aria-pressed={!describeMode && s.id === sampleId}
+                onClick={() => {
+                  setDescribeMode(false);
+                  setSampleId(s.id);
+                }}
               >
                 {s.label}
-                {s.id === sampleId && <span className="sx-sample-tick">✓</span>}
+                {!describeMode && s.id === sampleId && <span className="sx-sample-tick">✓</span>}
               </button>
             ))}
+            <button
+              className={`sx-sample${describeMode ? " on" : ""}`}
+              aria-pressed={describeMode}
+              onClick={() => setDescribeMode(true)}
+            >
+              📝 Describe your own
+              {describeMode && <span className="sx-sample-tick">✓</span>}
+            </button>
           </div>
-          <div className="sx-soon">
-            📝 Describe it / 🖼️ Upload a screenshot: <b>coming soon</b>. For now we map the
-            closest preset.
-          </div>
+
+          {describeMode && (
+            <div className="sx-describe">
+              <label className="sx-describe-label" htmlFor="sx-workflow">
+                What kind of HR workflow? (a type, not real records)
+              </label>
+              <textarea
+                id="sx-workflow"
+                className="sx-describe-input"
+                placeholder="e.g. employee offboarding, appraisal cycle, reimbursement approval"
+                maxLength={MAX_LEN}
+                rows={2}
+                value={workflowText}
+                onChange={(e) => setWorkflowText(e.target.value)}
+              />
+              <div className="sx-describe-meta">
+                <span>{workflowText.length} / {MAX_LEN}</span>
+              </div>
+              {guardError && <div className="sx-describe-err">⚠️ {guardError}</div>}
+              <label className="sx-attest">
+                <input
+                  type="checkbox"
+                  checked={attested}
+                  onChange={(e) => setAttested(e.target.checked)}
+                />
+                <span>
+                  This is a generic example, with no real personal or confidential data. We block
+                  obvious identifiers and never store your text.
+                </span>
+              </label>
+            </div>
+          )}
         </main>
         <footer className="sx-foot">
-          <button className="sx-cta" onClick={() => setPhase("map")}>
-            Generate the map →
+          <button className="sx-cta" disabled={!canGenerate} onClick={proceedToMap}>
+            {describeMode ? "Generate my map →" : "Generate the map →"}
           </button>
           {homeLink}
         </footer>
@@ -197,14 +350,33 @@ export function SystemSimRunner({
   if (phase === "map") {
     return (
       <div className="sx">
-        <Header onBack={() => setPhase("input")} label={sample.label} />
+        <Header onBack={() => setPhase("input")} label={generating ? "Mapping…" : sample.label} />
         <main className="sx-body">
-          <p className="sx-kicker">Tap any step to understand it</p>
-          <Flow onNodeTap={(n) => setTapped(n)} highlightHr />
-          <NodeCard />
+          {generating ? (
+            <div className="sx-center" style={{ minHeight: "50dvh" }}>
+              <RuneLoader size={150} />
+              <p className="sx-muted">Rune is tuning your map…</p>
+            </div>
+          ) : (
+            <>
+              {genSource === "fallback" && (
+                <div className="sx-airow">
+                  <SampleTag onRetry={retryGenerate} />
+                  <span className="sx-muted">Mapped the closest sample system for now.</span>
+                </div>
+              )}
+              <p className="sx-kicker">Tap any step to understand it</p>
+              <Flow sample={sample} onNodeTap={(n) => setTapped(n)} highlightHr selectedId={tapped?.id} />
+              <NodeCard node={tapped} cardRef={nodeCardRef} onClose={() => setTapped(null)} />
+            </>
+          )}
         </main>
         <footer className="sx-foot">
-          <button className="sx-cta" onClick={() => { setTapped(null); setPhase("edges"); }}>
+          <button
+            className="sx-cta"
+            disabled={generating}
+            onClick={() => { setTapped(null); setPhase("edges"); }}
+          >
             Where are the trapdoors? →
           </button>
           {homeLink}
@@ -247,11 +419,13 @@ export function SystemSimRunner({
         <main className="sx-body">
           <h2 className="sx-q">{sample.comprehension.prompt}</h2>
           <Flow
+            sample={sample}
             onNodeTap={(n) => setCheckPick(n.id)}
             highlightHr={false}
+            feedback={checkPick !== null ? { id: checkPick, ok: checkSolved } : null}
           />
           {checkPick !== null && (
-            <div className={`sx-checkres${checkSolved ? " good" : " bad"}`}>
+            <div ref={checkResRef} className={`sx-checkres${checkSolved ? " good" : " bad"}`}>
               <b>{checkSolved ? "Exactly. " : "Not that one. "}</b>
               {checkSolved ? sample.comprehension.insight : sample.comprehension.hint}
             </div>
@@ -327,9 +501,9 @@ export function SystemSimRunner({
 
         <div className="sx-grill">
           <p className="sx-kicker">🔥 One more thing</p>
-          <h2 className="sx-q">{sim.grillBeat.prompt}</h2>
+          <h2 className="sx-q">{grill.prompt}</h2>
           <div className="sx-grill-opts">
-            {sim.grillBeat.branches.map((br, i) => (
+            {grill.branches.map((br, i) => (
               <button
                 key={i}
                 className={`sx-grill-opt ${
@@ -349,7 +523,7 @@ export function SystemSimRunner({
           {grillPicked !== null && (
             <div className={`sx-retort${grillSolved ? "" : " bad"}`}>
               {!grillSolved && <b>Not quite. </b>}
-              {sim.grillBeat.branches[grillPicked].retort}
+              {grill.branches[grillPicked].retort}
             </div>
           )}
         </div>

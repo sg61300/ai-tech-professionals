@@ -87,13 +87,39 @@
   object-fit: cover;
   display: block;
 }
-/* The active iframe fades in over the poster once the player is PLAYING, so the
-   YouTube cold-start shows the thumbnail instead of a black frame. */
-.reel-frame {
+/* The single persistent player. Fixed over the active poster; fades in once its
+   video is actually PLAYING so a load reads as the thumbnail, not a black frame. */
+.reel-stage {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
   opacity: 0;
   transition: opacity 0.28s ease;
+  pointer-events: none; /* scroll passes through to the poster filmstrip below */
 }
-.reel-frame.reveal { opacity: 1; }
+.reel-stage.reveal { opacity: 1; }
+.reel-stage-host { position: absolute; inset: 0; }
+/* The YouTube IFrame API mounts its <iframe> inside the host; make it fill. */
+.reel-stage-host iframe,
+.reel-stage-media {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+/* Chrome (shade + title + rail) for the active reel, above the player. The layer
+   itself ignores pointer events so scroll reaches the filmstrip; the rail buttons
+   re-enable them. */
+.reel-chrome {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+.reel-chrome .reel-rail,
+.reel-chrome .rr-btn { pointer-events: auto; }
 
 /* Loading spinner shown over the poster until the reel starts playing. */
 .reel-spinner {
@@ -114,8 +140,27 @@
 @keyframes reel-spin {
   to { transform: rotate(360deg); }
 }
+
+/* Big play glyph shown centered while the reel is paused (tap anywhere to resume). */
+.reel-paused {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.46);
+  backdrop-filter: blur(4px);
+  pointer-events: none; /* the tap that resumes goes through to the scroller */
+  z-index: 2;
+}
+.reel-paused svg { margin-left: 3px; filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.5)); }
 @media (prefers-reduced-motion: reduce) {
-  .reel-frame { transition: none; }
+  .reel-stage { transition: none; }
   .reel-spinner { animation: reel-pulse 1.2s ease-in-out infinite; border-top-color: rgba(255, 255, 255, 0.28); }
 }
 @keyframes reel-pulse {

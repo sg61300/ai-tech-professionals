@@ -6,12 +6,23 @@ import { createClient } from "@/lib/supabase/server";
 import { captureServer } from "@/lib/analytics/server";
 import { EVENTS } from "@/lib/analytics/events";
 import { callAI } from "@/lib/ai";
-import { buildSortNarrationPrompt } from "@/lib/ai/prompts";
+import { callJsonAI } from "@/lib/ai/json";
+import { buildSortNarrationPrompt, buildInboxCoachPrompt } from "@/lib/ai/prompts";
 import { applyXp } from "@/lib/xp";
 import { computeStreak } from "@/lib/streak";
 import { emailSim } from "@/content";
 import { EMAIL_BUCKETS } from "@/content/schema";
-import { classifyInbox, groupByBucket, compilePrompt, gradeRulebook } from "@/lib/emailsim";
+import {
+  classifyInbox,
+  groupByBucket,
+  compilePrompt,
+  gradeRulebook,
+  topEmails,
+  inboxCoachGolden,
+  sanitizeTopReasons,
+  InboxCoachSchema,
+  type InboxTopReason,
+} from "@/lib/emailsim";
 import type { EmailRule } from "@/content/schema";
 
 /**
@@ -58,6 +69,52 @@ export async function narrateSort(input: unknown): Promise<SortNarrationResult> 
     await captureServer(user.id, EVENTS.AI_FALLBACK_USED, { surface: "email_sim" });
   }
   return { text, source };
+}
+
+export type InboxCoachResult = {
+  coachNote: string;
+  topReasons: InboxTopReason[];
+  source: "live" | "fallback";
+};
+
+/**
+ * Dynamic coaching (spec §4.1): after the deterministic sort, one bounded JSON
+ * call returns a coachNote naming the learner's ACTUAL rubric gaps plus a short
+ * reason for each top email (AI visibly "reading" the mail). The sort + rubric
+ * stay deterministic (lib/emailsim); `callJsonAI` guarantees the scripted golden
+ * (today's rubric string) on any failure. Prompt is authored-content only; we
+ * never log it or the response (DPDP). topReasons are filtered to real inbox ids.
+ */
+export async function coachInboxSort(input: unknown): Promise<InboxCoachResult> {
+  const parsed = RulesSchema.safeParse(input);
+  const rules = parsed.success ? sanitize(parsed.data) : [];
+
+  const rubric = gradeRulebook(emailSim, rules);
+  const golden = inboxCoachGolden(rubric);
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ...golden, source: "fallback" };
+
+  const failedLabels = rubric.results.filter((r) => !r.passed).map((r) => r.label);
+  const top = topEmails(emailSim, classifyInbox(emailSim, rules), 4);
+  const prompt = buildInboxCoachPrompt(emailSim, failedLabels, top);
+
+  const { data, source } = await callJsonAI({
+    req: { prompt, maxOutputTokens: 300 },
+    golden,
+    schema: InboxCoachSchema,
+  });
+  if (source === "fallback") {
+    await captureServer(user.id, EVENTS.AI_FALLBACK_USED, { surface: "email_sim_coach" });
+  }
+  return {
+    coachNote: data.coachNote,
+    topReasons: sanitizeTopReasons(emailSim, data.topReasons),
+    source,
+  };
 }
 
 export type EmailCompleteResult =

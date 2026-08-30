@@ -97,8 +97,9 @@ export const SYSTEM_SIM: SystemSim = {
         { from: "l4", to: "l5" },
       ],
       edgeCases: [
-        { risk: "Balance check skipped", why: "Employees go into negative leave and payroll has to claw it back later." },
+        // Worst first (FIX 4 convention): losing the system-of-record is the least reversible failure.
         { risk: "HR record step missed", why: "The official balance and payroll drift apart, disputes follow." },
+        { risk: "Balance check skipped", why: "Employees go into negative leave and payroll has to claw it back later." },
       ],
       requirements: [
         "Block approval when the leave balance is insufficient",
@@ -164,25 +165,7 @@ export const SYSTEM_SIM: SystemSim = {
   celebration: {
     copy: "You just X-rayed a system, found its trapdoors, and drafted requirements for it. That's not 'using AI', that's thinking like an architect.",
   },
-  grillBeat: {
-    prompt: "Which single step, if it failed, would cause the most damage?",
-    branches: [
-      {
-        choice: "The compliance gate (background check)",
-        retort:
-          "Right. A failure there is costly and hard to reverse, someone starts with no compliance record, and unwinding that is a legal headache.",
-        correct: true,
-      },
-      {
-        choice: "The Day-1 orientation",
-        retort:
-          "A rough Day-1 stings, but it's recoverable. A skipped compliance gate is the failure you can't easily undo.",
-      },
-      {
-        choice: "The probation reminder",
-        retort:
-          "Missing a review is bad, but fixable. The costliest, least-reversible failure is the compliance gate.",
-      },
-    ],
-  },
+  // FIX 4: the end grill is now derived per-system from its own edge cases
+  // (buildSystemGrill in lib/systemsim), so the static, onboarding-specific
+  // grillBeat is retired. SystemSimSchema.grillBeat is optional for this reason.
 };

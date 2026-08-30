@@ -160,6 +160,14 @@
 }
 @media (hover: hover) { .pf-art-actions button:hover { border-color: var(--teal); } }
 .pf-art-del:hover { border-color: var(--error) !important; }
+.pf-art-confirm { display: flex; align-items: center; gap: 6px; }
+.pf-art-confirm-q { font-size: 12px; font-weight: 600; color: var(--muted-foreground); }
+.pf-art-actions .pf-art-confirm-yes,
+.pf-art-actions .pf-art-confirm-no {
+  width: auto; height: 30px; padding: 0 10px; font-size: 12px; font-weight: 600;
+}
+.pf-art-confirm-yes { border-color: var(--error) !important; color: var(--error); }
+@media (hover: hover) { .pf-art-confirm-yes:hover { background: var(--error); color: #fff; } }
 
 /* Compact saved-reel row (icon + title link only — no bulky URL). */
 .pf-art-reel { align-items: center; padding: 8px 10px 8px 12px; gap: 8px; transition: border-color .15s; }

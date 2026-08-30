@@ -1,0 +1,316 @@
+/* Bias Catcher sim — Teal & Coral tokens (globals.css). Mirrors the System
+   X-Ray runner's layout: pinned header + footer, internally-scrolling body.
+   Violet = AI moments, coral = the bias/flag, teal = the fair fix. */
+
+.bs {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  overflow: hidden;
+}
+.bs-top {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 80px 6px 16px;
+}
+.bs-icon {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--foreground);
+  font-size: 17px;
+  cursor: pointer;
+}
+.bs-icon:active { transform: scale(0.94); }
+.bs-top-title {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 14px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none; /* keeps the back button clickable underneath */
+  font-family: var(--font-heading), sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+}
+.bs-ghost { border: none; background: transparent; pointer-events: none; }
+.bs-home {
+  display: block;
+  margin: 10px auto 0;
+  padding: 6px 14px;
+  background: none;
+  border: none;
+  color: var(--muted-foreground);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.bs-body {
+  flex: 1;
+  min-height: 0;
+  padding: 12px 20px 20px;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.bs-body::-webkit-scrollbar { display: none; }
+.bs-center {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px 26px;
+  gap: 12px;
+}
+.bs-center::-webkit-scrollbar { display: none; }
+.bs-hero { font-size: 58px; }
+.bs-h1 {
+  font-family: var(--font-heading), sans-serif;
+  font-weight: 800;
+  font-size: 25px;
+  line-height: 1.15;
+  margin: 2px 0;
+}
+.bs-copy { color: var(--foreground); line-height: 1.45; }
+.bs-muted { color: var(--muted-foreground); font-size: 14px; line-height: 1.4; }
+.bs-kicker {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--violet);
+  margin: 6px 0 10px;
+}
+.bs-q {
+  font-family: var(--font-heading), sans-serif;
+  font-weight: 700;
+  font-size: 18px;
+  line-height: 1.3;
+  margin: 0 0 14px;
+}
+
+/* CTA + footer */
+.bs-cta {
+  width: 100%;
+  padding: 15px 20px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--teal);
+  color: var(--primary-foreground);
+  font-family: var(--font-heading), sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  cursor: pointer;
+  transition: transform 0.08s;
+}
+.bs-cta:not(:disabled):active { transform: scale(0.98); }
+.bs-cta:disabled { opacity: 0.5; cursor: default; }
+.bs-cta:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+.bs-cta.ghost {
+  background: var(--card);
+  color: var(--foreground);
+  border: 1.5px solid var(--border);
+}
+.bs-foot {
+  flex: none;
+  padding: 12px 20px calc(18px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--border);
+  background: var(--background);
+}
+.bs-foot-row { display: flex; gap: 10px; width: 100%; padding-top: 6px; }
+
+/* candidate stack */
+.bs-cands { display: grid; gap: 9px; margin-top: 4px; }
+.bs-cand {
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--border);
+  background: var(--card);
+  overflow-wrap: anywhere;
+}
+.bs-cand-h {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.bs-cand-name { font-weight: 800; font-size: 15px; }
+.bs-cand-role { color: var(--muted-foreground); font-size: 13px; }
+.bs-cand-merit { display: block; margin-top: 4px; font-size: 13.5px; line-height: 1.4; }
+.bs-cand-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.bs-tag {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--secondary);
+  color: var(--muted-foreground);
+}
+.bs-tag.elite { background: color-mix(in srgb, var(--violet) 16%, var(--card)); color: var(--violet); }
+.bs-tag.gap { background: color-mix(in srgb, var(--coral) 14%, var(--card)); color: color-mix(in srgb, var(--coral) 55%, var(--foreground)); }
+
+/* ranked list (before / after) */
+.bs-ranklist { display: grid; gap: 8px; margin-top: 6px; }
+.bs-rankrow {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 11px 13px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--border);
+  background: var(--card);
+  animation: bs-pop 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes bs-pop { from { opacity: 0; transform: translateY(6px); } }
+.bs-rank-badge {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--secondary);
+  font-weight: 800;
+  font-size: 14px;
+}
+.bs-rankrow.up { border-color: var(--success); background: color-mix(in srgb, var(--success) 10%, var(--card)); }
+.bs-rankrow.down { border-color: var(--coral); background: color-mix(in srgb, var(--coral) 8%, var(--card)); }
+.bs-rank-main { flex: 1; min-width: 0; }
+.bs-rank-name { font-weight: 700; font-size: 14px; }
+.bs-rank-reason { display: block; margin-top: 2px; font-size: 12.5px; color: var(--muted-foreground); line-height: 1.35; }
+.bs-move { flex: none; font-size: 12px; font-weight: 800; }
+.bs-move.up { color: var(--success); }
+.bs-move.down { color: var(--coral); }
+
+/* audit + fix chips */
+.bs-chips { display: grid; gap: 8px; margin-top: 4px; }
+.bs-chip {
+  text-align: left;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--border);
+  background: var(--card);
+  color: var(--foreground);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.bs-chip.on { border-color: var(--teal); background: color-mix(in srgb, var(--teal) 10%, var(--card)); }
+.bs-chip:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+.bs-feedback {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  line-height: 1.45;
+  border: 1px solid var(--border);
+}
+.bs-feedback.good { background: color-mix(in srgb, var(--success) 12%, var(--card)); border-color: color-mix(in srgb, var(--success) 40%, var(--border)); }
+.bs-feedback.bad { background: color-mix(in srgb, var(--amber) 14%, var(--card)); border-color: color-mix(in srgb, var(--amber) 40%, var(--border)); }
+
+/* optional guarded job title */
+.bs-titlebox {
+  margin: 12px 0 4px;
+  padding: 13px 14px;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--violet) 8%, var(--card));
+  border: 1px solid color-mix(in srgb, var(--violet) 28%, var(--border));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.bs-titlebox summary { font-size: 13px; font-weight: 700; cursor: pointer; }
+.bs-title-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 9px 11px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--border);
+  background: var(--background);
+  color: var(--foreground);
+  font: inherit;
+  font-size: 14px;
+}
+.bs-title-input:focus-visible {
+  outline: none;
+  border-color: var(--teal);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--teal) 20%, transparent);
+}
+.bs-title-err {
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--coral) 12%, var(--card));
+  border: 1px solid color-mix(in srgb, var(--coral) 40%, var(--border));
+  color: color-mix(in srgb, var(--coral) 55%, var(--foreground));
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.bs-attest {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--muted-foreground);
+  cursor: pointer;
+}
+.bs-attest input { flex: none; margin-top: 2px; accent-color: var(--teal); width: 16px; height: 16px; }
+.bs-applied { font-size: 12.5px; font-weight: 700; color: var(--teal); }
+
+/* done */
+.bs-done {
+  min-height: 70dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 14px;
+  padding: 8px 6px 4px;
+}
+.bs-rewards { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.bs-reward { padding: 8px 13px; border-radius: 999px; font-weight: 800; font-size: 13px; }
+.bs-reward.xp { background: color-mix(in srgb, var(--teal) 16%, var(--card)); color: var(--teal); }
+.bs-reward.badge, .bs-reward.lvl { background: color-mix(in srgb, var(--violet) 16%, var(--card)); color: var(--violet); }
+.bs-reward.streak { background: color-mix(in srgb, var(--amber) 20%, var(--card)); color: color-mix(in srgb, var(--amber) 60%, var(--foreground)); }
+.bs-grill { width: 100%; text-align: left; margin-top: 8px; }
+.bs-grill-opts { display: grid; gap: 8px; }
+.bs-grill-opt {
+  text-align: left;
+  padding: 13px 14px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--border);
+  background: var(--card);
+  color: var(--foreground);
+  font-size: 14px;
+  cursor: pointer;
+}
+.bs-grill-opt.right { border-color: var(--success); background: color-mix(in srgb, var(--success) 12%, var(--card)); }
+.bs-grill-opt.wrong { border-color: var(--error); background: color-mix(in srgb, var(--error) 10%, var(--card)); }
+.bs-retort {
+  margin-top: 10px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  line-height: 1.45;
+  background: color-mix(in srgb, var(--success) 10%, var(--card));
+  border: 1px solid color-mix(in srgb, var(--success) 35%, var(--border));
+}
+.bs-retort.bad { background: color-mix(in srgb, var(--amber) 14%, var(--card)); border-color: color-mix(in srgb, var(--amber) 40%, var(--border)); }
+
+@media (prefers-reduced-motion: reduce) {
+  .bs-rankrow { animation: none; }
+}

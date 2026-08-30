@@ -33,6 +33,8 @@ export const EVENTS = {
   THEME_SET: "theme_set", // metric #10 — dark-mode preference {theme} (+ $set preferred_theme)
   REELS_OPENED: "reels_opened", // metric #11 — opened the reels screen (denominator)
   REELS_SCREEN_TIME: "reels_screen_time", // metric #11 — visible seconds on the reels screen per visit {seconds}
+  SIM_UNLOCKED_VIA_XP: "sim_unlocked_via_xp", // headline secondary — spent XP to unlock a sim ahead of the path {sim_id, xp_spent, ahead_of_path}
+  SIM_OPENED: "sim_opened", // supporting reach metric — opened a sim {sim_id, via: "path" | "xp"}
   // Referral (AARRR Referral stage — ADR-020 / Session 21). All server-side.
   REFERRAL_LINK_SHARED: "referral_link_shared", // referrer tapped a share channel {channel}
   REFERRAL_CODE_APPLIED: "referral_code_applied", // invitee applied a code {via} (signup | profile)

@@ -9,6 +9,7 @@
 }
 
 .sx-top {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -30,11 +31,18 @@
   transform: scale(0.94);
 }
 .sx-top-title {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 14px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none; /* keeps the back button clickable underneath */
   font-family: var(--font-heading), sans-serif;
   font-weight: 700;
   font-size: 15px;
-  text-align: center;
-  flex: 1;
 }
 .sx-ghost {
   border: none;
@@ -205,6 +213,79 @@
   line-height: 1.4;
 }
 
+/* describe-your-own (spec §4.2b) — guarded free-text seam */
+.sx-describe {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 14px;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--violet) 8%, var(--card));
+  border: 1px solid color-mix(in srgb, var(--violet) 28%, var(--border));
+}
+.sx-describe-label {
+  font-size: 13px;
+  font-weight: 700;
+}
+.sx-describe-input {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  min-height: 46px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--border);
+  background: var(--background);
+  color: var(--foreground);
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.4;
+}
+.sx-describe-input:focus-visible {
+  outline: none;
+  border-color: var(--teal);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--teal) 20%, transparent);
+}
+.sx-describe-meta {
+  display: flex;
+  justify-content: flex-end;
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+.sx-describe-err {
+  padding: 9px 11px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--coral) 12%, var(--card));
+  border: 1px solid color-mix(in srgb, var(--coral) 40%, var(--border));
+  color: color-mix(in srgb, var(--coral) 55%, var(--foreground));
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.sx-attest {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--muted-foreground);
+  cursor: pointer;
+}
+.sx-attest input {
+  flex: none;
+  margin-top: 2px;
+  accent-color: var(--teal);
+  width: 16px;
+  height: 16px;
+}
+.sx-airow {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 8px;
+}
+
 /* flow map */
 .sx-flow {
   display: flex;
@@ -264,6 +345,32 @@
   border-color: var(--teal);
   background: color-mix(in srgb, var(--teal) 12%, var(--card));
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--teal) 18%, transparent);
+}
+/* FIX 2: tapped node on the map — a distinct FILLED, elevated selection
+   (violet accent), clearly different from the always-on teal HR glow. */
+.sx-node.sel {
+  border-color: var(--violet);
+  background: color-mix(in srgb, var(--violet) 16%, var(--card));
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--violet) 30%, transparent);
+  transform: translateY(-1px);
+}
+.sx-node.sel .sx-node-glyph {
+  background: color-mix(in srgb, var(--violet) 24%, var(--card));
+}
+/* FIX 3: comprehension answer feedback at the tap point. */
+.sx-node.correct {
+  border-color: var(--success);
+  background: color-mix(in srgb, var(--success) 16%, var(--card));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--success) 22%, transparent);
+}
+.sx-node.correct .sx-node-glyph {
+  background: var(--success);
+  color: var(--primary-foreground);
+}
+.sx-node.incorrect {
+  border-color: var(--error);
+  background: color-mix(in srgb, var(--error) 14%, var(--card));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--error) 20%, transparent);
 }
 .sx-node-glyph {
   flex: none;
@@ -364,6 +471,7 @@
   font-size: 14px;
   line-height: 1.45;
   border: 1px solid var(--border);
+  animation: sx-pop 0.25s ease both; /* FIX 3: catch the eye when feedback appears */
 }
 .sx-checkres.good {
   background: color-mix(in srgb, var(--success) 12%, var(--card));
@@ -507,7 +615,11 @@
 @media (prefers-reduced-motion: reduce) {
   .sx-node,
   .sx-nodecard,
+  .sx-checkres,
   .sx-rune-hop img {
     animation: none;
+  }
+  .sx-node.sel {
+    transform: none;
   }
 }

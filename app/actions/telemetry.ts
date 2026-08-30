@@ -70,6 +70,13 @@ export async function trackThemePreference(theme: "dark" | "light"): Promise<voi
   await captureServer(id, EVENTS.THEME_SET, { theme }, { preferred_theme: theme });
 }
 
+/** Sim reach — opened a sim (once per sim per session; fired from SimOpenTracker). */
+export async function trackSimOpened(simId: string, via: "path" | "xp"): Promise<void> {
+  const id = await userId();
+  if (!id) return;
+  await captureServer(id, EVENTS.SIM_OPENED, { sim_id: simId, via });
+}
+
 /** Metric #11 (denominator) — opened the reels screen. */
 export async function trackReelsOpened(): Promise<void> {
   const id = await userId();

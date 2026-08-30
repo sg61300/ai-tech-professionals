@@ -28,6 +28,11 @@ describe("EVENTS map", () => {
     expect(EVENTS.REELS_SCREEN_TIME).toBe("reels_screen_time"); // #11 numerator input
   });
 
+  it("includes the XP-unlock sim events", () => {
+    expect(EVENTS.SIM_UNLOCKED_VIA_XP).toBe("sim_unlocked_via_xp"); // headline secondary
+    expect(EVENTS.SIM_OPENED).toBe("sim_opened"); // supporting reach metric
+  });
+
   it("keeps the north-star + funnel events intact", () => {
     expect(EVENTS.TASTE_SIM_COMPLETED).toBe("taste_sim_completed"); // #1a/#1b
     expect(EVENTS.FULL_SIM_COMPLETED).toBe("full_sim_completed"); // NS part 1

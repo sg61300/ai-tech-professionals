@@ -36,6 +36,7 @@ export function SavedArtifacts({ items }: { items: Artifact[] }) {
 
   const [list, setList] = useState(items.filter((a) => a.source_sim !== "reel"));
   const [copiedId, setCopiedId] = useState<number | null>(null);
+  const [confirmingId, setConfirmingId] = useState<number | null>(null);
   const [expanded, setExpanded] = useState(false);
 
   const copy = async (a: Artifact) => {
@@ -49,6 +50,7 @@ export function SavedArtifacts({ items }: { items: Artifact[] }) {
   };
 
   const remove = async (id: number) => {
+    setConfirmingId(null);
     setList((l) => l.filter((a) => a.id !== id));
     await deleteArtifact(id);
   };
@@ -78,17 +80,41 @@ export function SavedArtifacts({ items }: { items: Artifact[] }) {
                 <span className="pf-art-body">{a.body}</span>
               </div>
               <div className="pf-art-actions">
-                <button type="button" onClick={() => copy(a)} aria-label="Copy">
-                  {copiedId === a.id ? "✓" : "📋"}
-                </button>
-                <button
-                  type="button"
-                  className="pf-art-del"
-                  onClick={() => remove(a.id)}
-                  aria-label="Delete"
-                >
-                  🗑
-                </button>
+                {confirmingId === a.id ? (
+                  <div className="pf-art-confirm" role="group" aria-label="Confirm delete">
+                    <span className="pf-art-confirm-q">Delete?</span>
+                    <button
+                      type="button"
+                      className="pf-art-confirm-yes"
+                      onClick={() => remove(a.id)}
+                      aria-label="Confirm delete"
+                    >
+                      Delete
+                    </button>
+                    <button
+                      type="button"
+                      className="pf-art-confirm-no"
+                      onClick={() => setConfirmingId(null)}
+                      aria-label="Cancel delete"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <button type="button" onClick={() => copy(a)} aria-label="Copy">
+                      {copiedId === a.id ? "✓" : "📋"}
+                    </button>
+                    <button
+                      type="button"
+                      className="pf-art-del"
+                      onClick={() => setConfirmingId(a.id)}
+                      aria-label="Delete"
+                    >
+                      🗑
+                    </button>
+                  </>
+                )}
               </div>
             </li>
           ))}

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { simBackHref } from "@/lib/sim/backHref";
 import type { TasteSim } from "@/content/schema";
 import {
   generateTasteEmail,
@@ -83,6 +84,7 @@ export function TasteSimRunner({
     }
   }
   function toggleFact(i: number) {
+    setDistractorWarn(null); // a valid pick clears any lingering distractor warning
     setFacts((s) => {
       const n = new Set(s);
       n.has(i) ? n.delete(i) : n.add(i);
@@ -136,7 +138,7 @@ export function TasteSimRunner({
   function back() {
     const order: Step[] = ["intro", "role", "context", "format", "review"];
     const i = order.indexOf(step);
-    if (i <= 0) router.push("/learn");
+    if (i <= 0) router.push(simBackHref());
     else setStep(order[i - 1]);
   }
 

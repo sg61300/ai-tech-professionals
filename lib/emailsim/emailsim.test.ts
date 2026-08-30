@@ -8,6 +8,10 @@ import {
   compilePrompt,
   gradeRulebook,
   DEFAULT_BUCKET,
+  topEmails,
+  inboxCoachGolden,
+  sanitizeTopReasons,
+  InboxCoachSchema,
 } from "./index";
 
 const sim = EMAIL_SIM;
@@ -101,5 +105,33 @@ describe("gradeRulebook", () => {
     const partial: EmailRule[] = [{ conditionId: "c-newsletter", bucketKey: "later" }];
     const r = gradeRulebook(sim, partial);
     expect(r.results.find((x) => x.id === "noise_filtered")!.passed).toBe(false); // social+spam still unmatched
+  });
+});
+
+describe("live-AI coach layer (spec §4.1)", () => {
+  it("topEmails surfaces the highest-priority mail first", () => {
+    const sorted = classifyInbox(sim, goldenRules);
+    const top = topEmails(sim, sorted, 4);
+    expect(top).toHaveLength(4);
+    // The 3 Now emails (e1,e2,e3) must be among the top before any Later mail.
+    const topIds = top.map((e) => e.id);
+    expect(topIds).toEqual(expect.arrayContaining(["e1", "e2", "e3"]));
+    expect(topIds).not.toContain("e9"); // spam (Later) can't be top
+  });
+
+  it("inboxCoachGolden falls back to the deterministic rubric improvement", () => {
+    const rubric = gradeRulebook(sim, [{ conditionId: "c-newsletter", bucketKey: "later" }]);
+    const golden = inboxCoachGolden(rubric);
+    expect(golden.coachNote).toBe(rubric.improvement);
+    expect(golden.topReasons).toEqual([]);
+    expect(() => InboxCoachSchema.parse(golden)).not.toThrow();
+  });
+
+  it("sanitizeTopReasons drops reasons for unknown email ids (tamper-safe)", () => {
+    const cleaned = sanitizeTopReasons(sim, [
+      { emailId: "e1", reason: "urgent exit" },
+      { emailId: "nope", reason: "injected" },
+    ]);
+    expect(cleaned).toEqual([{ emailId: "e1", reason: "urgent exit" }]);
   });
 });

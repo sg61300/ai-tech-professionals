@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { simBackHref } from "@/lib/sim/backHref";
 import type { EmailSim, EmailRule, EmailBucket } from "@/content/schema";
 import {
   classifyInbox,
@@ -11,10 +12,13 @@ import {
 } from "@/lib/emailsim";
 import { RuneLoader } from "@/components/brand/RuneLoader";
 import { RuneMascot } from "@/components/brand/RuneMascot";
+import { SampleTag } from "./SampleTag";
 import {
   narrateSort,
+  coachInboxSort,
   completeEmailSim,
   type SortNarrationResult,
+  type InboxCoachResult,
   type EmailCompleteResult,
 } from "@/app/(app)/learn/sim/[id]/email-actions";
 import "./email.css";
@@ -32,10 +36,12 @@ type Phase = "intro" | "inbox" | "rules" | "prompt" | "run" | "rubric" | "setup"
 export function EmailSimRunner({
   sim,
   narrateAction = narrateSort,
+  coachAction = coachInboxSort,
   completeAction = completeEmailSim,
 }: {
   sim: EmailSim;
   narrateAction?: (input: unknown) => Promise<SortNarrationResult>;
+  coachAction?: (input: unknown) => Promise<InboxCoachResult>;
   completeAction?: (input: unknown) => Promise<EmailCompleteResult>;
 }) {
   const router = useRouter();
@@ -48,6 +54,9 @@ export function EmailSimRunner({
 
   const [narration, setNarration] = useState<string | null>(null);
   const [narrating, setNarrating] = useState(false);
+
+  const [coach, setCoach] = useState<InboxCoachResult | null>(null);
+  const [coaching, setCoaching] = useState(false);
 
   const [grillPicked, setGrillPicked] = useState<number | null>(null);
   const [result, setResult] = useState<EmailCompleteResult | null>(null);
@@ -80,10 +89,20 @@ export function EmailSimRunner({
     setPhase("run");
     setNarrating(true);
     setNarration(null);
+    void loadCoach(); // fire the coach in parallel so it's ready by the rubric card
     const r = await narrateAction(rules);
     setNarration(r.text);
     setNarrating(false);
   }
+
+  async function loadCoach() {
+    setCoaching(true);
+    const c = await coachAction(rules);
+    setCoach(c);
+    setCoaching(false);
+  }
+
+  const reasonByEmailId = new Map((coach?.topReasons ?? []).map((t) => [t.emailId, t.reason]));
 
   async function finish() {
     setSaving(true);
@@ -129,7 +148,7 @@ export function EmailSimRunner({
   if (phase === "intro") {
     return (
       <div className="es">
-        <Header onBack={() => router.push("/learn")} label="Inbox Tamer" />
+        <Header onBack={() => router.push(simBackHref())} label="Inbox Tamer" />
         <main className="es-center">
           <div className="es-hero" aria-hidden>
             📧
@@ -280,7 +299,7 @@ export function EmailSimRunner({
   if (phase === "run") {
     return (
       <div className="es">
-        <Header onBack={() => setPhase("prompt")} label="Sorting…" />
+        <Header onBack={() => setPhase("prompt")} label={narrating ? "Sorting…" : "Sorted"} />
         <main className="es-body">
           {narrating ? (
             <div className="es-center">
@@ -296,14 +315,18 @@ export function EmailSimRunner({
                     <span className="es-col-h">
                       {b.emoji} {b.label}
                     </span>
-                    {grouped[b.key].map((s) => (
-                      <div key={s.email.id} className="es-card">
-                        <span className="es-card-sub">{s.email.subject}</span>
-                        <span className="es-card-reason">
-                          {s.matched ? s.reason : "no rule, flagged"}
-                        </span>
-                      </div>
-                    ))}
+                    {grouped[b.key].map((s) => {
+                      const aiReason = reasonByEmailId.get(s.email.id);
+                      return (
+                        <div key={s.email.id} className="es-card">
+                          <span className="es-card-sub">{s.email.subject}</span>
+                          <span className="es-card-reason">
+                            {s.matched ? s.reason : "no rule, flagged"}
+                          </span>
+                          {aiReason && <span className="es-card-airead">✨ {aiReason}</span>}
+                        </div>
+                      );
+                    })}
                     {grouped[b.key].length === 0 && <span className="es-empty">-</span>}
                   </div>
                 ))}
@@ -346,8 +369,9 @@ export function EmailSimRunner({
               </div>
               <div className={`es-improve${rubric.allClear ? " clear" : ""}`}>
                 <b>{rubric.allClear ? "Nice work. " : "One improvement: "}</b>
-                {rubric.improvement}
+                {coaching && !coach ? rubric.improvement : coach ? coach.coachNote : rubric.improvement}
               </div>
+              {coach?.source === "fallback" && <SampleTag onRetry={loadCoach} />}
             </div>
           </div>
           <p className="es-muted es-tweak">{sim.tweakCopy}</p>

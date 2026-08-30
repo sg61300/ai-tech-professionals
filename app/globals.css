@@ -454,10 +454,14 @@
   .resume-title { font-family: var(--font-heading), sans-serif; font-size: 16px; font-weight: 700; line-height: 1.2; }
   .resume-go { font-size: 13px; font-weight: 700; color: var(--violet); margin-top: 2px; }
 
-  .tabs { position: sticky; bottom: 0; z-index: 4; display: flex; justify-content: space-around; align-items: center; padding: 9px 8px 12px; background: color-mix(in srgb, var(--card) 92%, transparent); backdrop-filter: blur(8px); border-top: 1px solid var(--border); flex: none; }
-  .tab { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 10px; font-weight: 600; color: var(--muted-foreground); flex: 1; background: none; border: 0; cursor: pointer; }
+  .tabs { position: sticky; bottom: 0; z-index: 4; display: flex; justify-content: space-around; align-items: center; padding: 9px 4px 12px; background: color-mix(in srgb, var(--card) 92%, transparent); backdrop-filter: blur(8px); border-top: 1px solid var(--border); flex: none; }
+  .tab { display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 9px; font-weight: 600; color: var(--muted-foreground); flex: 1; min-width: 0; padding: 0 2px; background: none; border: 0; cursor: pointer; }
   .tab .iw { position: relative; display: inline-flex; }
-  .tab svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .tab svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 2.3; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 2px 3px rgba(13, 40, 36, 0.32)); transition: transform .16s ease; }
+  .dark .tab svg { filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.6)); }
+  .tab.active svg { transform: translateY(-1px); }
+  /* Active pill behind the glyph — neutral tint so it works under any icon hue. */
+  .tab.active .iw::before { content: ""; position: absolute; inset: -5px -13px; border-radius: 13px; background: color-mix(in srgb, var(--muted-foreground) 14%, transparent); z-index: -1; }
   .tab.active { color: var(--teal); }
   .tab .nb { position: absolute; top: -5px; right: -9px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 999px; background: var(--coral-deep); color: #fff; font-size: 9px; font-weight: 800; display: grid; place-items: center; border: 2px solid var(--card); }
   /* Text badge ("New") sits a touch further right so it clears the tab glyph. */
@@ -525,6 +529,19 @@
   .lesson-path .vlab.right { transform-origin: left center; }
   .lesson-path .vlab b { display: block; font-family: var(--font-poppins), sans-serif; font-weight: 600; font-size: 12.5px; color: var(--foreground); }
   .lesson-path .vlab small { font-size: 10px; font-weight: 700; color: var(--violet); letter-spacing: .04em; }
+  /* Refined milestone labels on the ACTIVE path only — the greyed previews on
+     onboarding + profile keep their muted look. Placement is unchanged: this
+     touches only weight, tracking and colour. Each milestone is tinted by its
+     type (theme-aware tokens, legible in light + dark) so the path reads as a
+     rhythm of node kinds instead of one flat black. */
+  .lesson-path:not(.greyed) .vlab b { font-weight: 700; letter-spacing: -0.012em; }
+  .lesson-path:not(.greyed) .vlab.t-sim b { color: var(--violet); }
+  .lesson-path:not(.greyed) .vlab.t-rapidfire b { color: var(--coral); }
+  .lesson-path:not(.greyed) .vlab.t-taste b {
+    background: linear-gradient(100deg, var(--teal-deep), var(--violet));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .lesson-path:not(.greyed) .vlab small { text-transform: uppercase; letter-spacing: .07em; }
   .lesson-path .udiv { position: absolute; left: 50%; transform: translate(-50%, -50%) scale(var(--f, 1)); z-index: 3; font-family: var(--font-poppins), sans-serif; font-weight: 600; font-size: 10.5px; letter-spacing: .06em; color: var(--teal); background: var(--background); padding: 2px 12px; border: 1px solid var(--border); border-radius: 999px; white-space: nowrap; }
 
   /* Small resume card anchored beside the CURRENT node (kept with the top hero).

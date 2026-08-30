@@ -377,12 +377,144 @@ export const SystemSimSchema = z.object({
   requirementsCopy: z.string().min(1),
   requirementsBanner: z.string().min(1),
   celebration: z.object({ copy: z.string().min(1) }),
-  grillBeat: GrillBeatSchema,
+  // Retired (FIX 4): the end grill is derived per-system from its edge cases
+  // (buildSystemGrill). Kept optional so any legacy content still validates.
+  grillBeat: GrillBeatSchema.optional(),
 });
 export type SystemSim = z.infer<typeof SystemSimSchema>;
 export type SysNode = z.infer<typeof SysNodeSchema>;
 export type SysEdge = z.infer<typeof SysEdgeSchema>;
 export type SysSample = z.infer<typeof SysSampleSchema>;
+
+// --- Describe-your-own X-Ray: the GENERATED-graph contract (spec §4.2b) ------
+// STRICT model-output contract for the one guarded free-text seam. Purely
+// ADDITIVE — the preset SysSampleSchema above is unchanged. The model returns
+// structured nodes/edges ONLY (never mermaid syntax; we derive that
+// deterministically in lib/systemsim). Any parse/refine failure → closest preset
+// fallback, labelled a sample. Kinds exclude "end" (presets don't use it either).
+export const XRAY_GEN_NODE_KINDS = ["start", "step", "decision", "hr", "it"] as const;
+const GenXrayNodeSchema = z.object({
+  id: z.string().min(1),
+  label: z.string().min(1),
+  kind: z.enum(XRAY_GEN_NODE_KINDS),
+  hr: z.boolean(),
+  hint: z.string().min(1),
+  decisionBeat: z.string().optional(),
+});
+export const GeneratedXraySchema = z
+  .object({
+    label: z.string().min(1),
+    nodes: z.array(GenXrayNodeSchema).min(4).max(9),
+    edges: z.array(z.object({ from: z.string().min(1), to: z.string().min(1), label: z.string().optional() })).min(1),
+    edgeCases: z.array(z.object({ risk: z.string().min(1), why: z.string().min(1) })).min(2).max(3),
+    requirements: z.array(z.string().min(1)).min(3).max(6),
+    comprehension: z.object({
+      prompt: z.string().min(1),
+      correctNodeId: z.string().min(1),
+      insight: z.string().min(1),
+      hint: z.string().min(1),
+    }),
+  })
+  // Every edge endpoint must reference a real node id.
+  .refine(
+    (g) => {
+      const ids = new Set(g.nodes.map((n) => n.id));
+      return g.edges.every((e) => ids.has(e.from) && ids.has(e.to));
+    },
+    { message: "every edge endpoint must reference a real node id", path: ["edges"] },
+  )
+  // The comprehension target must reference a node, and that node must be HR-owned.
+  .refine((g) => g.nodes.some((n) => n.id === g.comprehension.correctNodeId && n.hr === true), {
+    message: "comprehension.correctNodeId must reference an hr:true node",
+    path: ["comprehension", "correctNodeId"],
+  });
+export type GeneratedXray = z.infer<typeof GeneratedXraySchema>;
+
+// --- Bias Catcher sim (spec §4.3, "sim-bias" capstone) ----------------------
+// A 7-beat sim built around a visible before/after ranking. AI does real work
+// (ranks 6 dummy candidates live); the human stays accountable (audits the
+// biased reasons, fixes the prompt with curated toggles, sees a fairer re-rank).
+// Deterministic core: two AUTHORED golden rankings back the live calls; audit +
+// fix checks are pure (lib/biassim). All dummy data (DPDP).
+const BiasCandidateSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1), // dummy
+  role: z.string().min(1), // e.g. "Recruiter, 4 yrs"
+  merit: z.string().min(1), // the role-relevant strength (what SHOULD matter)
+  /** Seeded noise: college tier (elite vs unknown) — a pedigree bias the naive prompt over-weights. */
+  college: z.string().min(1),
+  eliteCollege: z.boolean(),
+  /** Seeded noise: a childcare-coded employment gap the naive prompt penalizes. */
+  hasGap: z.boolean(),
+  gapNote: z.string().optional(),
+});
+const BiasAuditReasonSchema = z.object({
+  id: z.string().min(1),
+  label: z.string().min(1),
+  /** True = a reason that SHOULDN'T matter (college pedigree, the gap). The learner must flag exactly these. */
+  biased: z.boolean(),
+});
+const BiasFixToggleSchema = z.object({
+  id: z.string().min(1),
+  label: z.string().min(1),
+  /** True = a genuine debiasing instruction. The fair fix = all debiasing on, no distractor on. */
+  debiasing: z.boolean(),
+  /** The instruction folded into the round-2 prompt when this toggle is selected. */
+  effect: z.string().min(1),
+});
+const BiasGoldenRankSchema = z.object({
+  rank: z.number().int().positive(),
+  candidateId: z.string().min(1),
+  reason: z.string().min(1),
+});
+
+export const BiasSimSchema = z
+  .object({
+    id: z.string().min(1),
+    kind: z.literal("bias"),
+    xp: z.number().int().positive(),
+    badge: z.string().min(1),
+    intro: z.object({ copy: z.string().min(1), cta: z.string().min(1) }),
+    hook: z.string().min(1),
+    jobTitle: z.string().min(1),
+    jobTitleInputCopy: z.string().min(1),
+    stackCopy: z.string().min(1),
+    candidates: z.array(BiasCandidateSchema).length(6),
+    round1Copy: z.string().min(1),
+    auditCopy: z.string().min(1),
+    auditReasons: z.array(BiasAuditReasonSchema).min(3),
+    fixCopy: z.string().min(1),
+    fixToggles: z.array(BiasFixToggleSchema).min(3),
+    round2Copy: z.string().min(1),
+    goldenBiased: z.array(BiasGoldenRankSchema).length(6),
+    goldenFair: z.array(BiasGoldenRankSchema).length(6),
+    celebration: z.object({ copy: z.string().min(1) }),
+    grillBeat: GrillBeatSchema,
+  })
+  .refine((s) => s.auditReasons.some((r) => r.biased), {
+    message: "bias sim needs at least one biased audit reason to flag",
+    path: ["auditReasons"],
+  })
+  .refine((s) => s.fixToggles.some((t) => t.debiasing), {
+    message: "bias sim needs at least one debiasing fix toggle",
+    path: ["fixToggles"],
+  })
+  .refine(
+    (s) => {
+      const ids = new Set(s.candidates.map((c) => c.id));
+      const perm = (g: { candidateId: string }[]) =>
+        g.length === ids.size &&
+        g.every((r) => ids.has(r.candidateId)) &&
+        new Set(g.map((r) => r.candidateId)).size === ids.size;
+      return perm(s.goldenBiased) && perm(s.goldenFair);
+    },
+    { message: "each golden ranking must be a permutation of the candidate ids", path: ["goldenBiased"] },
+  );
+export type BiasSim = z.infer<typeof BiasSimSchema>;
+export type BiasCandidate = z.infer<typeof BiasCandidateSchema>;
+export type BiasAuditReason = z.infer<typeof BiasAuditReasonSchema>;
+export type BiasFixToggle = z.infer<typeof BiasFixToggleSchema>;
+export type BiasGoldenRank = z.infer<typeof BiasGoldenRankSchema>;
 
 // --- Parse helpers (used by content files + the seed script) ----------------
 export const parseLesson = (data: unknown): Lesson => LessonSchema.parse(data);
@@ -392,3 +524,4 @@ export const parseSim = (data: unknown): SimScript => SimScriptSchema.parse(data
 export const parseEmailSim = (data: unknown): EmailSim => EmailSimSchema.parse(data);
 export const parseSystemSim = (data: unknown): SystemSim => SystemSimSchema.parse(data);
 export const parseTasteSim = (data: unknown): TasteSim => TasteSimSchema.parse(data);
+export const parseBiasSim = (data: unknown): BiasSim => BiasSimSchema.parse(data);
